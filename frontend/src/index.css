@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import '@xyflow/react/dist/style.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Deep Moss Green to Dark gradient base */
+    --background: 150 17% 5%; /* #0A0E0C approx */
+    --background-end: 132 19% 15%; /* #1F2E22 */
+    
+    --foreground: 0 0% 95%;
+
+    /* Floating Card background - Darker grey */
+    --card: 150 10% 8%; /* #121614 */
+    --card-foreground: 0 0% 95%;
+
+    --popover: 150 10% 8%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Glowing Lime Green Accent */
+    --primary: 147 100% 61%; /* #36FF8F */
+    --primary-foreground: 150 17% 5%;
+
+    --secondary: 132 19% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 150 10% 12%;
+    --muted-foreground: 147 20% 60%;
+
+    --accent: 147 100% 61%;
+    --accent-foreground: 150 17% 5%;
+
+    /* Red for gaps / critical alerts */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 95%;
+
+    /* Warning / Medium */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 95%;
+
+    --border: 132 19% 20%;
+    --input: 150 10% 12%;
+    --ring: 147 100% 61%;
+
+    --radius: 1rem; /* 16px soft rounded */
+
+    /* Chart Colors */
+    --chart-1: 147 100% 61%; /* Primary Green */
+    --chart-2: 132 40% 40%;  /* Muted Green */
+    --chart-3: 0 84% 60%;    /* Destructive Red */
+    --chart-4: 38 92% 50%;   /* Warning Orange */
+    --chart-5: 210 100% 60%; /* Info Blue */
+    
+    /* Sidebar matching theme */
+    --sidebar-background: 150 17% 5%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 147 100% 61%;
+    --sidebar-primary-foreground: 150 17% 5%;
+    --sidebar-accent: 150 10% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 132 19% 20%;
+    --sidebar-ring: 147 100% 61%;
+  }
+
+  body {
+    @apply antialiased text-foreground;
+    font-family: var(--font-sans);
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background-end)) 100%);
+    min-height: 100vh;
+    /* Subtle semi-transparent background lines */
+    background-image: 
+      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background-end)) 100%),
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-wide;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  .glow-card {
+    box-shadow: 
+      0 0 30px 0 hsl(var(--primary) / 0.05), 
+      inset 0 0 1px 1px hsl(var(--primary) / 0.1),
+      inset 0 4px 20px -10px rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
+  }
+
+  .glow-card:hover {
+    box-shadow: 
+      0 0 40px 5px hsl(var(--primary) / 0.1), 
+      inset 0 0 1px 1px hsl(var(--primary) / 0.2),
+      inset 0 4px 20px -10px rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+  }
+
+  .glow-border {
+    border: 1px solid hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
+  }
+
+  .glass-panel {
+    background: rgba(18, 22, 20, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  /* React Flow Customizations */
+  .react-flow__node {
+    border-radius: 50%;
+  }
+  .react-flow__handle {
+    width: 6px;
+    height: 6px;
+    background-color: hsl(var(--primary));
+    border: none;
+  }
+  .react-flow__attribution {
+    background: transparent;
+    color: rgba(255,255,255,0.2);
+  }
+}
