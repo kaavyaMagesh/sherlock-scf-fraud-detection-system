@@ -54,12 +54,10 @@ const recalculateScore = async (req, res) => {
             }
         }
 
-        // 2. Re-check Triple Match (e.g., if a new GRN arrived)
-        if (invoice.po_id && invoice.grn_id) {
-            const tripleCheck = await validationService.checkTripleMatch(lenderId, invoice.po_id, invoice.grn_id, invoice.amount, invoice.invoice_date, invoice.supplier_id, invoice.buyer_id);
-            totalPoints += tripleCheck.points;
-            finalBreakdown.push(...tripleCheck.breakdown);
-        }
+        // 2. Re-check Triple Match (e.g., if a new GRN arrived, or if they are entirely missing)
+        const tripleCheck = await validationService.checkTripleMatch(lenderId, invoice.po_id, invoice.grn_id, invoice.amount, invoice.invoice_date, invoice.supplier_id, invoice.buyer_id);
+        totalPoints += tripleCheck.points;
+        finalBreakdown.push(...tripleCheck.breakdown);
 
         // 3. Re-evaluate Core 12 Rules 
         const riskResult = await riskEngineService.evaluateRisk(
