@@ -10,7 +10,7 @@ const pool = new Pool({
 
 const executeSchema = async () => {
   const ddl = `
-    DROP TABLE IF EXISTS alerts, risk_score_audits, settlements, invoice_fingerprints, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders CASCADE;
+    DROP TABLE IF EXISTS manual_overrides, explanations, alerts, risk_score_audits, settlements, invoice_fingerprints, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders CASCADE;
 
     CREATE TABLE IF NOT EXISTS lenders (
       id SERIAL PRIMARY KEY,
@@ -28,6 +28,10 @@ const executeSchema = async () => {
       first_invoice_date TIMESTAMP,
       last_invoice_date TIMESTAMP,
       industry_code VARCHAR(20),
+      did VARCHAR(255) UNIQUE,
+      verifiable_credential TEXT,
+      credential_verified BOOLEAN DEFAULT FALSE,
+      is_revoked BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -115,6 +119,24 @@ const executeSchema = async () => {
       message TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       resolved BOOLEAN DEFAULT FALSE
+    );
+
+    CREATE TABLE IF NOT EXISTS explanations (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
+      factor_breakdown JSONB,
+      counterfactual TEXT,
+      impatience_signal TEXT,
+      fraud_dna JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS manual_overrides (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
+      reason_log TEXT NOT NULL,
+      auditor_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
     );
   `;
 

@@ -2,8 +2,8 @@ const pool = require('../db/index');
 const crypto = require('crypto');
 
 // Helpers
-const generateFingerprint = (supplierId, buyerId, amount, invoiceDate) => {
-    const raw = `${supplierId}-${buyerId}-${Number(amount).toFixed(2)}-${new Date(invoiceDate).toISOString().split('T')[0]}`;
+const generateFingerprint = (supplierId, buyerId, invoiceNumber, amount, invoiceDate) => {
+    const raw = `${supplierId}${buyerId}${invoiceNumber}${Number(amount).toFixed(2)}${new Date(invoiceDate).toISOString().split('T')[0]}`;
     return crypto.createHash('sha256').update(raw).digest('hex');
 };
 

@@ -23,6 +23,7 @@ const FRAUD_RULES = [
 
 const graphEngineService = require('./graphEngineService');
 const semanticService = require('./semanticService');
+const explainabilityService = require('./explainabilityService');
 
 const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, invoiceDate, expectedPaymentDate, basePoints, baseBreakdown) => {
     let totalScore = basePoints || 0;
@@ -240,15 +241,30 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
             'INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)',
             [invoiceId, lenderId, status === 'BLOCKED' ? 'CRITICAL' : 'WARNING', primaryFactor, `Invoice blocked/flagged with score ${totalScore}`]
         );
+
+        const websocketService = require('./websocketService');
+        websocketService.broadcast({
+            entityName: supplier ? supplier.name : 'Unknown Entity',
+            invoiceId,
+            fraudType: primaryFactor,
+            score: totalScore,
+            severity: status === 'BLOCKED' ? 'CRITICAL' : 'WARNING'
+        });
     }
 
-    return {
+    const result = {
         invoiceId,
         status,
         riskScore: totalScore,
         breakdown: finalBreakdown,
         recommendation
     };
+
+    // Fire and forget — don't await
+    explainabilityService.generateExplanation(invoiceId, result)
+        .catch(err => console.error('Explanation save failed:', err));
+
+    return result;
 };
 
 module.exports = {
