@@ -1,11 +1,12 @@
 const pool = require('../db/index');
 const validationService = require('../services/validationService');
 const riskEngineService = require('../services/riskEngineService');
+const graphEngineService = require('../services/graphEngineService');
 
 const submitInvoice = async (req, res) => {
     try {
         const lenderId = req.lenderId;
-        const { invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, expected_payment_date } = req.body;
+        const { invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, expected_payment_date, goods_category } = req.body;
         const invoiceDate = new Date();
 
         if (!invoice_number || !po_id || !grn_id || !supplier_id || !buyer_id || !amount || !expected_payment_date) {
@@ -17,9 +18,9 @@ const submitInvoice = async (req, res) => {
 
         // 2. Draft Initial Invoice
         const invQuery = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [lenderId, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date]
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [lenderId, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date, goods_category]
         );
         const invoice = invQuery.rows[0];
 
@@ -57,6 +58,15 @@ const submitInvoice = async (req, res) => {
             expected_payment_date,
             totalPoints,
             finalBreakdown
+        );
+
+        // 7. Update Trade Relationship Graph (Fire for ALL invoices)
+        await graphEngineService.updateEdgeMetadata(
+            lenderId,
+            supplier_id,
+            buyer_id,
+            amount,
+            goods_category
         );
 
         // Map to exact required JSON contract

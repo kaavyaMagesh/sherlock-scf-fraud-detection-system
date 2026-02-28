@@ -36,9 +36,13 @@ const executeSchema = async () => {
       lender_id INTEGER REFERENCES lenders(id),
       supplier_id INTEGER REFERENCES companies(id),
       buyer_id INTEGER REFERENCES companies(id),
-      first_trade_date TIMESTAMP,
-      total_volume DECIMAL,
-      invoice_count INTEGER
+      first_trade_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      total_volume NUMERIC(15,2) DEFAULT 0,
+      invoice_count INTEGER DEFAULT 0,
+      tier INTEGER,
+      goods_category VARCHAR(100),
+      UNIQUE(supplier_id, buyer_id, lender_id)
     );
 
     CREATE TABLE IF NOT EXISTS purchase_orders (
@@ -47,7 +51,8 @@ const executeSchema = async () => {
       root_po_id INTEGER,
       buyer_id INTEGER REFERENCES companies(id),
       supplier_id INTEGER REFERENCES companies(id),
-      amount DECIMAL,
+      amount NUMERIC(15,2),
+      goods_category VARCHAR(100),
       po_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -69,7 +74,8 @@ const executeSchema = async () => {
       grn_id INTEGER REFERENCES goods_receipts(id),
       supplier_id INTEGER REFERENCES companies(id),
       buyer_id INTEGER REFERENCES companies(id),
-      amount DECIMAL,
+      amount NUMERIC(15,2),
+      goods_category VARCHAR(100),
       invoice_date TIMESTAMP,
       expected_payment_date TIMESTAMP,
       status VARCHAR(20) DEFAULT 'PENDING',

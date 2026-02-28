@@ -48,16 +48,18 @@ const seedData = async () => {
         for (let i = 0; i < 5; i++) {
             const s = faker.helpers.arrayElement(suppliers).id;
             const b = faker.helpers.arrayElement(buyers).id;
+            const cat = faker.helpers.arrayElement(['Industrial Steel', 'Electronics', 'Chemicals']);
             await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7)`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, $8)`,
                 [
                     mainLender,
                     `PHANTOM-${faker.number.int({ min: 1000, max: 9999 })}`,
                     s, b,
                     faker.number.float({ min: 10000, max: 50000, fractionDigits: 2 }),
                     faker.date.recent({ days: 5 }),
-                    faker.date.soon({ days: 30 })
+                    faker.date.soon({ days: 30 }),
+                    cat
                 ]
             );
         }
@@ -73,9 +75,9 @@ const seedData = async () => {
 
         // Insert first
         const inv1Res = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-            [lenders[0].id, 'ORIG-MULT-1', fakePoId, fakeGrnId, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 })]
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+            [lenders[0].id, 'ORIG-MULT-1', fakePoId, fakeGrnId, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 }), 'Office Supplies']
         );
         // Standardize fingerprint simulation (normally done via app logic, simulating here based on validationService)
         const crypto = require('crypto');
@@ -87,8 +89,8 @@ const seedData = async () => {
         // Insert dupes across other lenders
         for (let i = 1; i <= 2; i++) {
             const dupInv = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7) RETURNING id`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'Office Supplies') RETURNING id`,
                 [lenders[i].id, `DUPE-MULT-${i}`, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 })]
             );
             // In reality, fingerprint insertion might fail if UNIQUE constraint fires unless cross-lender allows it. 
@@ -107,8 +109,8 @@ const seedData = async () => {
         for (let i = 0; i < 20; i++) {
             burstTime.setMinutes(burstTime.getMinutes() + 5); // 5 mins apart
             await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7)`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'Raw Materials')`,
                 [mainLender, `BURST-${i}`, dormantSupplier.id, buyers[1].id, faker.number.int({ min: 5000, max: 20000 }), burstTime, faker.date.soon({ days: 30 })]
             );
         }
@@ -119,8 +121,8 @@ const seedData = async () => {
             const greedySupplier = companies[sIdx];
             const massiveAmount = Number(greedySupplier.annual_revenue) * 1.5; // 150% of annual
             await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7)`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'Machinery')`,
                 [mainLender, `GREED-${sIdx}`, greedySupplier.id, buyers[2].id, massiveAmount, new Date(), faker.date.soon({ days: 30 })]
             );
         }
@@ -135,8 +137,8 @@ const seedData = async () => {
         for (let i = 0; i < 10; i++) {
             nightTime.setMinutes(nightTime.getMinutes() + 2); // 2 mins apart
             await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7)`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'Consumer Goods')`,
                 [mainLender, `BOT-${baseSeq + i}`, botSupplier.id, buyers[3].id, faker.number.int({ min: 1000, max: 5000 }), nightTime, faker.date.soon({ days: 30 })]
             );
         }
@@ -156,8 +158,8 @@ const seedData = async () => {
             const invDate = new Date(grnDate.getTime() + (2 * 24 * 60 * 60 * 1000)); // GRN + 2 days
 
             const poRes = await pool.query(
-                `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-                [lendId, buy.id, supp.id, amt * 1.02, poDate]
+                `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+                [lendId, buy.id, supp.id, amt * 1.02, poDate, 'General Trade']
             );
 
             const grnRes = await pool.query(
@@ -166,12 +168,61 @@ const seedData = async () => {
             );
 
             await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'APPROVED', 10)`,
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'APPROVED', 10, 'General Trade')`,
                 [lendId, `CLEAN-${faker.number.int({ min: 100000, max: 999999 })}`, poRes.rows[0].id, grnRes.rows[0].id, supp.id, buy.id, amt, invDate, faker.date.soon({ days: 60 })]
+            );
+
+            // Update trade relationship for clean data
+            await pool.query(
+                `INSERT INTO trade_relationships (lender_id, supplier_id, buyer_id, last_seen, total_volume, invoice_count, goods_category) 
+                 VALUES ($1, $2, $3, NOW(), $4, 1, 'General Trade')
+                 ON CONFLICT (supplier_id, buyer_id, lender_id) DO UPDATE SET invoice_count = trade_relationships.invoice_count + 1`,
+                [lendId, supp.id, buy.id, amt]
             );
             cleanCount++;
         }
+
+        // SCENARIO 6: Carousel Trade (A->B->C->A)
+        console.log("-> Generating Scenario 6: Carousel Trade");
+        const compA = suppliers[5].id;
+        const compB = suppliers[6].id;
+        const compC = suppliers[7].id;
+        const cat = 'Circular Electronics';
+
+        const trades = [[compA, compB], [compB, compC], [compC, compA]];
+        for (const [s, b] of trades) {
+            await pool.query(
+                `INSERT INTO trade_relationships (lender_id, supplier_id, buyer_id, last_seen, total_volume, invoice_count, goods_category)
+                 VALUES ($1, $2, $3, NOW(), 50000, 1, $4)`,
+                [mainLender, s, b, cat]
+            );
+            await pool.query(
+                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+                 VALUES ($1, $2, null, null, $3, $4, 50000, NOW(), NOW(), $5)`,
+                [mainLender, `CYCLE-${s}-${b}`, s, b, cat]
+            );
+        }
+
+        // SCENARIO 7: Cascade Over-financing
+        console.log("-> Generating Scenario 7: Cascade Over-financing");
+        const rootAmt = 1000000;
+        const rootPo = await pool.query(
+            `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic') RETURNING id`,
+            [mainLender, buyers[4].id, suppliers[8].id, rootAmt]
+        );
+        const rootId = rootPo.rows[0].id;
+
+        // Sub-tier financing
+        await pool.query(
+            `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category, root_po_id) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic', $5)`,
+            [mainLender, suppliers[8].id, suppliers[9].id, 600000, rootId]
+        );
+        await pool.query(
+            `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category, root_po_id) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic', $5)`,
+            [mainLender, suppliers[8].id, suppliers[10].id, 600000, rootId]
+        );
+        // Total financed = 1.2M > 1M (1.2x ratio > 1.1x threshold)
 
         await pool.query('COMMIT');
         console.log(`Seed Data Generation Complete! Generated explicit fraud patterns + ${cleanCount} clean records.`);

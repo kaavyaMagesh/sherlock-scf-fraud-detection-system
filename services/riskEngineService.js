@@ -13,7 +13,16 @@ const FRAUD_RULES = [
     { id: 'payment_term_anomaly', points: 15, description: 'Payment terms >90 days' },
     { id: 'dilution_rate_high', points: 20, description: 'Rolling dilution rate >5%' },
     { id: 'triple_match_fail', points: 40, description: 'No matching PO/GRN found' },
+    { id: 'cascade_over_financing', points: 50, description: 'Total financed > 110% root PO' },
+    { id: 'carousel_trade_detected', points: 60, description: 'Circular trade pattern detected (90d)' },
+    { id: 'isolated_node_detection', points: 10, description: 'Supplier has only one trading partner' },
+    { id: 'semantic_mismatch', points: 40, description: 'Document goods descriptions mismatch' },
+    { id: 'vague_description', points: 15, description: 'Vague description (phantom signal)' },
+    { id: 'templated_invoices', points: 30, description: 'Bot-like repeated descriptions' },
 ];
+
+const graphEngineService = require('./graphEngineService');
+const semanticService = require('./semanticService');
 
 const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, invoiceDate, expectedPaymentDate, basePoints, baseBreakdown) => {
     let totalScore = basePoints || 0;
@@ -131,6 +140,80 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
                 applyPenalty('dilution_rate_high', `Historical dilution rate is ${(dilutionRate * 100).toFixed(1)}% (Threshold: 5%)`);
             }
         }
+    }
+
+    // --- LAYER 5: GRAPH ENGINE RULES ---
+
+    // 1. Cascade Over-financing Check
+    const poQuery = await pool.query('SELECT id FROM purchase_orders WHERE id = (SELECT po_id FROM invoices WHERE id = $1)', [invoiceId]);
+    if (poQuery.rows.length > 0) {
+        const rootPoId = poQuery.rows[0].id; // Simplified: assuming current PO is potential root or part of chain
+        const cascade = await graphEngineService.calculateCascadeExposure(rootPoId);
+        if (cascade.ratio > 1.1) {
+            applyPenalty('cascade_over_financing', `Total chain financing is ${(cascade.ratio * 100).toFixed(1)}% of root PO (Exceeds 110%)`);
+        }
+    }
+
+    // 2. Carousel Trade Detection
+    const cycles = await graphEngineService.detectCycles(lenderId);
+    const hasCycle = cycles.some(c => c.path.includes(supplierId) && c.path.includes(buyerId));
+    if (hasCycle) {
+        applyPenalty('carousel_trade_detected', 'Supplier/Buyer are part of a circular trade chain within 90 days');
+    }
+
+    // 3. Isolated Node Check
+    const isolated = await graphEngineService.detectIsolatedNodes(lenderId);
+    if (isolated.some(i => i.supplier_id === supplierId)) {
+        applyPenalty('isolated_node_detection', 'Supplier has historically only transacted with one buyer (Graph Analysis)');
+    }
+
+    // --- LAYER 6: SEMANTIC LAYER RULES (PARALLEL FOR SPEED) ---
+
+    // Fetch related docs for consistency check
+    const docsQuery = await pool.query(`
+        SELECT p.goods_category as po_desc, g.amount_received, i.goods_category as inv_desc
+        FROM invoices i
+        LEFT JOIN purchase_orders p ON i.po_id = p.id
+        LEFT JOIN goods_receipts g ON i.grn_id = g.id
+        WHERE i.id = $1
+    `, [invoiceId]);
+
+    const docData = docsQuery.rows[0];
+    const semanticTasks = [];
+
+    if (docData) {
+        // Task A: Document Consistency
+        semanticTasks.push(semanticService.verifyDocumentConsistency(
+            { description: docData.inv_desc },
+            { description: docData.po_desc },
+            { description: `Received ${docData.amount_received}` } // Mocking GRN desc
+        ).then(res => { if (!res.isConsistent) applyPenalty('semantic_mismatch', res.mismatchReason); }));
+
+        // Task B: Vague Description
+        semanticTasks.push(semanticService.checkVagueDescriptions(docData.inv_desc)
+            .then(res => { if (res.isVague) applyPenalty('vague_description', res.reason); }));
+    }
+
+    // Task C: Supplier History Similarity
+    semanticTasks.push(semanticService.analyzeSupplierSimilarity(supplierId)
+        .then(res => { if (res.isSuspicious) applyPenalty('templated_invoices', res.reason); }));
+
+    // Wait for LLM results (max performance)
+    await Promise.all(semanticTasks);
+
+    // 4. Centrality Multiplier (APPLIED LAST)
+    const centrality = await graphEngineService.calculateCentrality(lenderId);
+    const entityDegree = centrality.find(c => Number(c.company_id) === Number(supplierId))?.degree ?? 0;
+
+    if (entityDegree > 5 && finalBreakdown.length > 0) {
+        const multiplier = 1.3;
+        const previousScore = totalScore;
+        totalScore = Math.min(100, Math.round(totalScore * multiplier));
+        finalBreakdown.push({
+            factor: 'centrality_multiplier',
+            points: `x${multiplier}`,
+            detail: `High-centrality node (${entityDegree} partners) with existing flags. Score increased from ${previousScore} to ${totalScore}`
+        });
     }
 
     // Determine target status
