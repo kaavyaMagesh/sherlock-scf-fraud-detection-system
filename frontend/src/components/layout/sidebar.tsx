@@ -1,11 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { 
-  Activity, 
-  LayoutDashboard, 
-  Network, 
-  ShieldCheck, 
-  Settings,
-  BellRing
+import {
+  Activity,
+  LayoutDashboard,
+  Network,
+  ShieldCheck,
+  BellRing,
+  Upload
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -13,11 +13,11 @@ export function AppSidebar() {
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/ingestion", label: "Data Ingestion", icon: Upload },
     { href: "/topology", label: "Network Topology", icon: Network },
     { href: "/verification", label: "Verification Center", icon: ShieldCheck },
     { href: "/alerts", label: "Anomaly Alerts", icon: BellRing },
     { href: "/velocity", label: "Velocity Monitor", icon: Activity },
-    { href: "/settings", label: "System Config", icon: Settings },
   ];
 
   return (
@@ -25,7 +25,7 @@ export function AppSidebar() {
       <div className="p-6">
         <div className="flex items-center gap-3 text-primary glow-text font-bold text-xl tracking-wider">
           <ShieldCheck className="w-8 h-8" />
-          <span>NEXUS</span>
+          <span>SHERLOCK</span>
         </div>
         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 font-mono">
           Fraud Detection System
@@ -41,8 +41,8 @@ export function AppSidebar() {
               href={item.href}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
-                ${isActive 
-                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(54,255,143,0.05)]' 
+                ${isActive
+                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(54,255,143,0.05)]'
                   : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent'
                 }
               `}

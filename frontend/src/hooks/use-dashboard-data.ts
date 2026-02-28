@@ -5,7 +5,8 @@ import {
   MOCK_ALERTS,
   MOCK_VELOCITY,
   MOCK_NODES,
-  MOCK_EDGES
+  MOCK_EDGES,
+  MOCK_INVOICE_QUEUE
 } from "../lib/mockData";
 
 // ============================================================================
@@ -61,6 +62,16 @@ export function useNetwork() {
     queryFn: async () => {
       await delay(1000); // Give the graph a second to show the cool loading text
       return { nodes: MOCK_NODES, edges: MOCK_EDGES };
+    },
+  });
+}
+
+export function useInvoiceQueue() {
+  return useQuery({
+    queryKey: ["invoice-queue"],
+    queryFn: async () => {
+      await delay(450);
+      return MOCK_INVOICE_QUEUE;
     },
   });
 }

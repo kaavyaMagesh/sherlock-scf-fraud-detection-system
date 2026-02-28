@@ -1,9 +1,9 @@
 import { KpiWidgets } from "@/components/dashboard/kpi-widgets";
-import { NetworkGraph } from "@/components/dashboard/network-graph";
-import { VerificationChart, VelocityChart } from "@/components/dashboard/charts";
-import { AlertsPanel, CashTimeline } from "@/components/dashboard/alerts-timeline";
-import { ActionPanel } from "@/components/dashboard/action-panel";
-import { Bell } from "lucide-react";
+import { FraudSimulator } from "@/components/demo/fraud-simulator";
+import { LiveSubmissionForm } from "@/components/demo/live-submission-form";
+import { WhatIfSimulator } from "@/components/demo/what-if-simulator";
+import { ExpandableWrapper } from "@/components/ui/expandable-wrapper";
+import { Bell, FlaskConical } from "lucide-react";
 
 export default function Dashboard() {
   return (
@@ -29,34 +29,24 @@ export default function Dashboard() {
       {/* KPIs */}
       <KpiWidgets />
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Network Map - Takes up 2 columns */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="h-[450px]">
-            <NetworkGraph />
-          </div>
-          <CashTimeline />
+      {/* Demo & Simulation Zone */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <FlaskConical className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-bold text-foreground glow-text tracking-tight uppercase">Simulation Zone</h2>
         </div>
-
-        {/* Right Sidebar - Alerts & Action */}
-        <div className="flex flex-col gap-6">
-          <div className="h-[280px]">
-            <ActionPanel />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="min-h-[400px] h-full">
+            <FraudSimulator />
           </div>
-          <div className="flex-1 min-h-[250px]">
-            <AlertsPanel />
+          <div className="min-h-[400px] h-full">
+            <LiveSubmissionForm />
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-        <div className="h-[350px]">
-          <VerificationChart />
-        </div>
-        <div className="h-[350px]">
-          <VelocityChart />
+          <div className="min-h-[400px] h-full">
+            <ExpandableWrapper>
+              <WhatIfSimulator />
+            </ExpandableWrapper>
+          </div>
         </div>
       </div>
     </div>
