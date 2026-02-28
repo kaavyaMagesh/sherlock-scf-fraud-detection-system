@@ -5,81 +5,121 @@ dotenv.config({ path: '../.env' }); // Make sure we grab it from one level up ju
 // Actually process.cwd() will be root if run from index.js directory
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || "postgresql://neondb_owner:npg_EG7XaOHL6FSZ@ep-snowy-violet-a15qdjeb-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+  connectionString: process.env.DATABASE_URL || "postgresql://neondb_owner:npg_EG7XaOHL6FSZ@ep-snowy-violet-a15qdjeb-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
 });
 
 const executeSchema = async () => {
-    const ddl = `
+  const ddl = `
+    DROP TABLE IF EXISTS alerts, risk_score_audits, settlements, invoice_fingerprints, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders CASCADE;
+
+    CREATE TABLE IF NOT EXISTS lenders (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS companies (
-      id UUID PRIMARY KEY,
-      name VARCHAR,
+      id SERIAL PRIMARY KEY,
+      lender_id INTEGER REFERENCES lenders(id),
+      name VARCHAR(255),
       tier INTEGER,
-      annual_revenue DECIMAL,
-      avg_monthly_invoicing DECIMAL,
+      annual_revenue NUMERIC(15,2),
+      monthly_avg_invoicing NUMERIC(15,2),
+      first_invoice_date TIMESTAMP,
+      last_invoice_date TIMESTAMP,
+      industry_code VARCHAR(20),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS trade_relationships (
-      id UUID PRIMARY KEY,
-      supplier_id UUID REFERENCES companies(id),
-      buyer_id UUID REFERENCES companies(id),
+      id SERIAL PRIMARY KEY,
+      lender_id INTEGER REFERENCES lenders(id),
+      supplier_id INTEGER REFERENCES companies(id),
+      buyer_id INTEGER REFERENCES companies(id),
       first_trade_date TIMESTAMP,
       total_volume DECIMAL,
       invoice_count INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS purchase_orders (
-      id UUID PRIMARY KEY,
-      root_po_id UUID,
-      buyer_id UUID REFERENCES companies(id),
-      supplier_id UUID REFERENCES companies(id),
+      id SERIAL PRIMARY KEY,
+      lender_id INTEGER REFERENCES lenders(id),
+      root_po_id INTEGER,
+      buyer_id INTEGER REFERENCES companies(id),
+      supplier_id INTEGER REFERENCES companies(id),
       amount DECIMAL,
+      po_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS goods_receipts (
-      id UUID PRIMARY KEY,
-      po_id UUID REFERENCES purchase_orders(id),
+      id SERIAL PRIMARY KEY,
+      lender_id INTEGER REFERENCES lenders(id),
+      po_id INTEGER REFERENCES purchase_orders(id),
       amount_received DECIMAL,
+      grn_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS invoices (
-      id UUID PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
+      lender_id INTEGER REFERENCES lenders(id),
       invoice_number VARCHAR,
-      po_id UUID REFERENCES purchase_orders(id),
-      grn_id UUID REFERENCES goods_receipts(id),
-      supplier_id UUID REFERENCES companies(id),
-      buyer_id UUID REFERENCES companies(id),
+      po_id INTEGER REFERENCES purchase_orders(id),
+      grn_id INTEGER REFERENCES goods_receipts(id),
+      supplier_id INTEGER REFERENCES companies(id),
+      buyer_id INTEGER REFERENCES companies(id),
       amount DECIMAL,
+      invoice_date TIMESTAMP,
       expected_payment_date TIMESTAMP,
+      status VARCHAR(20) DEFAULT 'PENDING',
+      risk_score INTEGER,
       created_at TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS invoice_fingerprints (
-      id UUID PRIMARY KEY,
-      invoice_id UUID REFERENCES invoices(id),
-      lender_id VARCHAR,
-      fingerprint_hash VARCHAR UNIQUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      id SERIAL PRIMARY KEY,
+      fingerprint VARCHAR(64) UNIQUE,
+      invoice_id INTEGER REFERENCES invoices(id),
+      lender_id INTEGER REFERENCES lenders(id),
+      created_at TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS settlements (
-      id UUID PRIMARY KEY,
-      invoice_id UUID REFERENCES invoices(id),
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
       actual_payment_amount DECIMAL,
       payment_date TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS risk_score_audits (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
+      score INTEGER,
+      breakdown JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS alerts (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
+      lender_id INTEGER REFERENCES lenders(id),
+      severity VARCHAR(20), -- INFO / WARNING / CRITICAL / BLOCKED
+      fraud_rule VARCHAR(50),
+      message TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      resolved BOOLEAN DEFAULT FALSE
+    );
   `;
 
-    try {
-        await pool.query(ddl);
-        console.log("Database Schema Initialized Successfully!");
-    } catch (error) {
-        console.error("Error creating tables:", error);
-    } finally {
-        await pool.end();
-    }
+  try {
+    await pool.query(ddl);
+    console.log("Database Schema Initialized Successfully!");
+  } catch (error) {
+    console.error("Error creating tables:", error);
+  } finally {
+    await pool.end();
+  }
 };
 
 executeSchema();
