@@ -14,7 +14,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           <p key={index} className="text-sm font-mono flex items-center justify-between gap-4">
             <span style={{ color: entry.color }}>{entry.name}:</span>
             <span className="font-bold text-foreground">
-              {entry.name.includes('Velocity') ? entry.value.toFixed(1) : `$${Number(entry.value).toLocaleString()}`}
+              {entry.name.includes('Velocity') ? entry.value.toFixed(1) : `₹${Number(entry.value).toLocaleString('en-IN')}`}
             </span>
           </p>
         ))}
@@ -43,7 +43,7 @@ export function VerificationChart() {
           <BarChart data={data} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="companyName" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.3)' }} />
             <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
             <Bar dataKey="invoiceValue" name="Invoice" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />

@@ -1,7 +1,12 @@
 const pool = require('../db/index');
-const { faker } = require('@faker-js/faker');
+let faker;
+const loadFaker = async () => {
+    const fakerModule = await import('@faker-js/faker');
+    faker = fakerModule.faker;
+};
 
 const seedData = async () => {
+    await loadFaker();
     try {
         console.log("Starting DB Seed...");
         await pool.query('BEGIN');

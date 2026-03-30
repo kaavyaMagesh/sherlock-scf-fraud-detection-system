@@ -100,7 +100,7 @@ export function LiveSubmissionForm() {
                             <input type="text" name="supplier" required placeholder="e.g. 'TechFlow' or 'Shell Corp'" className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount (USD)</label>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount (INR)</label>
                             <input type="number" name="amount" required defaultValue={150000} className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono" />
                         </div>
                     </div>
@@ -114,7 +114,7 @@ export function LiveSubmissionForm() {
                     </div>
 
                     <div className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded border border-border/50">
-                        <span className="font-bold text-primary">Demo Scripts:</span> Try <span className="font-mono text-foreground">TechFlow</span> for instant approval. Try <span className="font-mono text-foreground">Shell Corp</span> or <span className="font-mono text-foreground">Acme</span> with <span className="font-mono text-foreground">$600000</span> for blocked fraud.
+                        <span className="font-bold text-primary">Demo Scripts:</span> Try <span className="font-mono text-foreground">TechFlow</span> for instant approval. Try <span className="font-mono text-foreground">Shell Corp</span> or <span className="font-mono text-foreground">Acme</span> with <span className="font-mono text-foreground">₹6,00,000</span> for blocked fraud.
                     </div>
 
                     <button type="submit" className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-wider text-sm shadow-[0_0_15px_rgba(54,255,143,0.3)] hover:shadow-[0_0_25px_rgba(54,255,143,0.5)] transition-shadow flex items-center justify-center gap-2">

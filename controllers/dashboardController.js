@@ -110,14 +110,39 @@ const getDiscrepancies = async (req, res) => {
 };
 
 const getVelocity = async (req, res) => {
-    // Generate latest velocity curve from DB invoices or just return dynamic recent data
-    res.json(Array.from({ length: 14 }).map((_, i) => ({
-        id: i,
-        timestamp: new Date(Date.now() - (13 - i) * 86400000).toISOString(),
-        tier1Velocity: 50 + Math.random() * 10,
-        tier2Velocity: 35 + Math.random() * 8,
-        tier3Velocity: i >= 5 && i <= 8 ? 85 + Math.random() * 5 : 15 + Math.random() * 5,
-    })));
+    try {
+        const lenderId = req.lenderId;
+        // Fetch submission volume grouped by day for the last 14 days
+        const result = await pool.query(
+            `WITH days AS (
+                SELECT generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, '1 day')::date AS day
+            )
+            SELECT 
+                d.day as timestamp,
+                COUNT(i.id) FILTER (WHERE c.tier = 1) as tier1_velocity,
+                COUNT(i.id) FILTER (WHERE c.tier = 2) as tier2_velocity,
+                COUNT(i.id) FILTER (WHERE c.tier = 3) as tier3_velocity
+            FROM days d
+            LEFT JOIN invoices i ON i.invoice_date::date = d.day AND i.lender_id = $1
+            LEFT JOIN companies c ON i.supplier_id = c.id
+            GROUP BY d.day
+            ORDER BY d.day ASC`,
+            [lenderId]
+        );
+
+        const mapped = result.rows.map((r, i) => ({
+            id: i,
+            timestamp: r.timestamp,
+            tier1Velocity: parseInt(r.tier1_velocity) || 0,
+            tier2Velocity: parseInt(r.tier2_velocity) || 0,
+            tier3Velocity: parseInt(r.tier3_velocity) || 0
+        }));
+
+        res.json(mapped);
+    } catch (error) {
+        console.error('Error fetching velocity:', error);
+        res.status(500).json({ error: 'Failed to fetch velocity' });
+    }
 };
 
 module.exports = {

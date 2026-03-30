@@ -77,7 +77,7 @@ export function ActionPanel() {
               Risk Score Breakdown: {riskScore}/100
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Review specific AI fraud detections before proceeding with the $1.25M batch disbursement.
+              Review specific AI fraud detections before proceeding with the ₹1.25 Cr batch disbursement.
             </DialogDescription>
           </DialogHeader>
 

@@ -31,7 +31,7 @@ export function WhatIfSimulator() {
                     <input type="text" defaultValue="INV-8001" className="w-full bg-muted/50 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Exposure Amount ($)</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Exposure Amount (INR)</label>
                     <input
                         type="number"
                         value={fundAmount}
@@ -84,7 +84,7 @@ export function WhatIfSimulator() {
                 <div className={`p-3 rounded-xl border transition-all duration-500 ${isApproved ? 'bg-destructive/5 border-destructive/30' : 'bg-primary/5 border-primary/20'}`}>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                         {isApproved
-                            ? `Overriding this block injects $${fundAmount.toLocaleString()} capital into a designated high-risk entity. Modeler predicts a ${dropPercentage.toFixed(1)}% drop in network health.`
+                            ? `Overriding this block injects ₹${fundAmount.toLocaleString('en-IN')} capital into a designated high-risk entity. Modeler predicts a ${dropPercentage.toFixed(1)}% drop in network health.`
                             : "Keeping the block maintains the network firewall. System health evaluates optimally without contagion risk from the designated account."}
                     </p>
                 </div>

@@ -202,7 +202,7 @@ export default function DataIngestionPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs text-muted-foreground uppercase">Amount (USD)</label>
+                                    <label className="text-xs text-muted-foreground uppercase">Amount (INR)</label>
                                     <input type="number" name="amount" defaultValue={45000} className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none" />
                                 </div>
                                 <div className="space-y-1.5 flex flex-col justify-end">

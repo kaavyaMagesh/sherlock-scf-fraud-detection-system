@@ -43,7 +43,7 @@ export function ContagionImpactView() {
                     <p className="text-sm text-destructive/80 mt-1">Blast radius for selected anomaly</p>
                 </div>
                 <div className="text-right">
-                    <div className="text-2xl font-mono font-bold text-destructive">${totalExposed.toLocaleString()}</div>
+                    <div className="text-2xl font-mono font-bold text-destructive">₹{totalExposed.toLocaleString('en-IN')}</div>
                     <div className="text-xs font-bold uppercase tracking-wider text-destructive/80">Capital at Risk</div>
                 </div>
             </div>
@@ -85,7 +85,7 @@ export function ContagionImpactView() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm font-mono font-bold text-foreground">${entity.exposure.toLocaleString()}</div>
+                                    <div className="text-sm font-mono font-bold text-foreground">₹{entity.exposure.toLocaleString('en-IN')}</div>
                                     <div className="text-xs font-bold text-[#ffae42]">{entity.riskIncrease} Risk</div>
                                 </div>
                             </div>

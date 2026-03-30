@@ -69,7 +69,7 @@ export default function SupplierProfilePage() {
                         <Building2 className="w-4 h-4 text-primary" /> Total Financed Volume
                     </div>
                     <div className="text-3xl font-mono font-bold text-foreground">
-                        $1.25M
+                        ₹1.25 Cr
                     </div>
                 </div>
                 <div className="bg-card p-6 rounded-2xl border border-border/50 glow-card">
