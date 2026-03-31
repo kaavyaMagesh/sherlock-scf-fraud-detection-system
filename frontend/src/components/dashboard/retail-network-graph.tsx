@@ -56,7 +56,9 @@ export function RetailNetworkGraph() {
     const { data, isLoading } = useQuery({
         queryKey: ['retail-topology'],
         queryFn: async () => {
-            const res = await fetch(`${API_BASE}/retail/topology`);
+            const res = await fetch(`${API_BASE}/retail/topology`, {
+                headers: { 'x-lender-id': '1' }
+            });
             if (!res.ok) throw new Error('Failed');
             return await res.json();
         },

@@ -1,16 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const API_BASE = 'http://localhost:3000/api';
-const HEADERS = {
+
+const getHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-lender-id': '1'
-};
+  'x-lender-id': localStorage.getItem('sherlock-lender-id') || '1'
+});
 
 export function useKPI() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
   return useQuery({
-    queryKey: ["kpi"],
+    queryKey: ["kpi", lenderId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/kpi`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/kpi`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch KPI');
       return await res.json();
     },
@@ -19,10 +21,11 @@ export function useKPI() {
 }
 
 export function useDiscrepancies() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
   return useQuery({
-    queryKey: ["discrepancies"],
+    queryKey: ["discrepancies", lenderId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/discrepancies`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/discrepancies`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch discrepancies');
       return await res.json();
     },
@@ -31,10 +34,11 @@ export function useDiscrepancies() {
 }
 
 export function useAlerts() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
   return useQuery({
-    queryKey: ["alerts"],
+    queryKey: ["alerts", lenderId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/alerts`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/alerts`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch alerts');
       const data = await res.json();
       return data.map((alert: any) => ({
@@ -50,10 +54,11 @@ export function useAlerts() {
 }
 
 export function useVelocity() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
   return useQuery({
-    queryKey: ["velocity"],
+    queryKey: ["velocity", lenderId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/velocity`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/velocity`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch velocity');
       return await res.json();
     },
@@ -61,8 +66,9 @@ export function useVelocity() {
 }
 
 export function useNetwork() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
   return useQuery({
-    queryKey: ["network-topology"],
+    queryKey: ["network-topology", lenderId],
     queryFn: async () => {
       // 1. Check for retail overrides first
       const localData = localStorage.getItem("sherlock-retail-topology");
@@ -71,7 +77,7 @@ export function useNetwork() {
       }
 
       // 2. Fetch real topology
-      const res = await fetch(`${API_BASE}/graph/topology`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/graph/topology`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch topology');
       const topology = await res.json();
 
@@ -97,15 +103,64 @@ export function useNetwork() {
   });
 }
 
-export function useInvoiceQueue() {
-  return useQuery({
-    queryKey: ["invoice-queue"],
+export function useCompanies() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const { data, isLoading: isLoadingCompanies, error: companiesError, refetch: refetchCompanies } = useQuery({
+    queryKey: ["companies", lenderId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/lender/1/portfolio`, { headers: HEADERS });
+      const res = await fetch(`${API_BASE}/identity/companies`, { headers: getHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch companies');
+      return await res.json();
+    },
+  });
+
+  return { companies: data, isLoadingCompanies, companiesError, refetchCompanies };
+}
+
+export function useCreateCompany() {
+  const queryClient = useQueryClient();
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  return useMutation({
+    mutationFn: async (company: { name: string; tier?: number }) => {
+      const res = await fetch(`${API_BASE}/identity/companies`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(company),
+      });
+      if (!res.ok) throw new Error('Failed to create company');
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies", lenderId] });
+    },
+  });
+}
+
+export function useInvoiceDetail(id: string | null) {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  return useQuery({
+    queryKey: ["invoice-detail", id, lenderId],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await fetch(`${API_BASE}/invoices/${id}`, { headers: getHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch invoice details');
+      return await res.json();
+    },
+    enabled: !!id,
+  });
+}
+
+export function useInvoiceQueue() {
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  return useQuery({
+    queryKey: ["invoice-queue", lenderId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/lender/${lenderId}/portfolio`, { headers: getHeaders() });
       if (!res.ok) throw new Error('Failed to fetch portfolio');
       const invoices = await res.json();
 
       return invoices.map((inv: any) => ({
+        dbId: inv.id,
         id: inv.invoice_number,
         supplier: "Supplier ID: " + (inv.supplier_id || '?'),
         amount: parseFloat(inv.amount),

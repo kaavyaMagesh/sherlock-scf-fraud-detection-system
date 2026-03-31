@@ -112,17 +112,53 @@ const ingestRetailData = async (req, res) => {
             );
 
             // Live Check for Demo Terminal
+            let riskScore = 0;
+            let auditLogs = [];
+
             if (txn.receiver.account_number.startsWith('MULE')) {
                 logs.push(`> WARNING: SUSPECTED MULE NODE ISOLATED: "${txn.receiver.account_number}"`);
+                riskScore += 80;
+                auditLogs.push({ factor: 'mule_account_detected', points: 80, detail: 'Receiver account flagged as potential mule' });
                 flaggedCount++;
             }
             if (txn.narration === "Loan Repayment" || txn.narration === "Consulting Fee" || txn.narration === "Vendor Payment") {
                 logs.push(`> CRITICAL: CIRCULAR CAROUSEL LOOP DETECTED ON "${txn.sender.account_number}"`);
+                riskScore += 90;
+                auditLogs.push({ factor: 'carousel_trade_detected', points: 90, detail: 'High-risk circular narration pattern' });
                 flaggedCount++;
+            }
+
+            // Sync with Standard Invoices (for the Live Portfolio Queue)
+            // We search for IDs again or use the ones passed (if available)
+            try {
+                const lenderId = req.headers['x-lender-id'] || '1';
+                const supplierQuery = await pool.query('SELECT id FROM companies WHERE name = $1 LIMIT 1', [txn.sender.name]);
+                const buyerQuery = await pool.query('SELECT id FROM companies WHERE name = $1 LIMIT 1', [txn.receiver.name]);
+                
+                const supplier_id = supplierQuery.rows[0]?.id;
+                const buyer_id = buyerQuery.rows[0]?.id;
+
+                if (supplier_id && buyer_id) {
+                    const invRes = await pool.query(
+                        `INSERT INTO invoices (lender_id, invoice_number, supplier_id, buyer_id, amount, status, risk_score, goods_category)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+                        [lenderId, txn.transaction_id, supplier_id, buyer_id, txn.amount, riskScore > 50 ? 'BLOCKED' : 'CLEAN', riskScore, 'Retail Service']
+                    );
+
+                    // Insert Audit for the panel
+                    if (auditLogs.length > 0) {
+                        await pool.query(
+                            `INSERT INTO risk_score_audits (invoice_id, factor_breakdown) VALUES ($1, $2)`,
+                            [invRes.rows[0].id, JSON.stringify(auditLogs)]
+                        );
+                    }
+                }
+            } catch (syncErr) {
+                console.error('Core sync error:', syncErr);
             }
         }
 
-        logs.push('> SYNCING WITH CORE LEDGER...');
+        logs.push('> SYNCING WITH CORE LEDGER: SUCCESS');
         if (flaggedCount > 0) {
             logs.push(`> BATCH COMPLETE. ${transactions.length - flaggedCount} APPROVED.`);
             logs.push(`> BLOCKED: ${flaggedCount} ANOMALIES QUARANTINED.`);

@@ -1,3 +1,6 @@
 {
-    "workbench.preferredLightColorTheme": "Kimbie Dark"
+    "workbench.preferredLightColorTheme": "Kimbie Dark",
+    "workbench.preferredHighContrastLightColorTheme": "Red",
+    "workbench.colorTheme": "Solarized Dark",
+    "workbench.preferredDarkColorTheme": "Abyss"
 }

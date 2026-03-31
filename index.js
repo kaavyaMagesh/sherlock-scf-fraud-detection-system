@@ -17,7 +17,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Main APIs
+// Retail APIs (Unauthenticated for prototype demo)
+app.use('/api/retail', retailRoutes);
+
+// Main APIs (Authenticated via x-lender-id)
 app.use('/api', ingestionRoutes);
 app.use('/api', dashboardRoutes); // /alerts and /lender/:id/portfolio
 app.use('/api/invoices', invoiceRoutes);
@@ -26,7 +29,6 @@ app.use('/api/graph', graphRoutes);
 app.use('/api/fraud', fraudRoutes); // Keep legacy until fully phased out
 app.use('/api/explain', explainRoutes);
 app.use('/api/identity', require('./routes/identityRoutes'));
-app.use('/api/retail', retailRoutes);
 
 const websocketService = require('./services/websocketService');
 

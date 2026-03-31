@@ -138,6 +138,25 @@ const executeSchema = async () => {
       auditor_id VARCHAR(255),
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS retail_accounts (
+      account_number VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(255),
+      mobile_number VARCHAR(20),
+      pincode VARCHAR(10),
+      account_type VARCHAR(50),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_transactions (
+      transaction_id VARCHAR(100) PRIMARY KEY,
+      timestamp TIMESTAMP,
+      amount NUMERIC(15,2),
+      narration TEXT,
+      sender_account VARCHAR(50) REFERENCES retail_accounts(account_number),
+      receiver_account VARCHAR(50) REFERENCES retail_accounts(account_number),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
   `;
 
   try {

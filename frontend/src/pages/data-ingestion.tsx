@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { UploadCloud, FileText, Server, Database, Terminal, Loader2 } from "lucide-react";
+import { UploadCloud, FileText, Server, Database, Terminal, Loader2, Search, ChevronDown, Plus } from "lucide-react";
+import { useCompanies, useCreateCompany } from "@/hooks/use-dashboard-data";
 
 export default function DataIngestionPage() {
     const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'complete'>('idle');
     const [logs, setLogs] = useState<string[]>(['> SYSTEM STANDBY...', '> Waiting for payload ingestion on endpoint /api/v1/invoices', '----------------------------------------']);
     const logsEndRef = useRef<HTMLDivElement>(null);
+    
+    // Entity selection state
+    const { companies, isLoadingCompanies, companiesError, refetchCompanies } = useCompanies();
+    const createCompanyMutation = useCreateCompany();
+    const [senderId, setSenderId] = useState<string>("");
+    const [receiverId, setReceiverId] = useState<string>("");
+    const [showAddPartner, setShowAddPartner] = useState(false);
+    const [newPartnerName, setNewPartnerName] = useState("");
 
     // Auto-scroll logs
     useEffect(() => {
@@ -19,7 +28,7 @@ export default function DataIngestionPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const lenderId = localStorage.getItem('lenderId');
+            const lenderId = localStorage.getItem('sherlock-lender-id');
 
             const response = await fetch('http://localhost:3000/api/retail/ingest', {
                 method: 'POST',
@@ -82,10 +91,16 @@ export default function DataIngestionPage() {
         e.preventDefault();
 
         const form = e.target as HTMLFormElement;
-        const supplierName = (form.elements.namedItem('supplier') as HTMLInputElement).value;
-        const buyerName = (form.elements.namedItem('buyer') as HTMLInputElement).value;
+        const senderObj = companies?.find((c: any) => c.id.toString() === senderId);
+        const receiverObj = companies?.find((c: any) => c.id.toString() === receiverId);
+        
+        if (!senderObj || !receiverObj) {
+            setLogs(prev => [...prev, '> ERROR: SENDER AND RECEIVER MUST BE SELECTED']);
+            return;
+        }
+
         const amount = parseFloat((form.elements.namedItem('amount') as HTMLInputElement).value || '0');
-        const narration = (form.elements.namedItem('narration') as HTMLInputElement).value || 'Transfer';
+        const narration = (form.elements.namedItem('narration') as HTMLSelectElement).value || 'Transfer';
 
         // Construct a single Live dummy transaction
         const dummyTransaction = [{
@@ -94,15 +109,15 @@ export default function DataIngestionPage() {
             amount: amount,
             narration: narration,
             sender: {
-                account_number: supplierName.includes("MULE") || supplierName.includes("SHELL") ? "MULE-9999" : "CORP-101",
-                name: supplierName,
+                account_number: senderObj.name.includes("MULE") || senderObj.name.includes("SHELL") ? "MULE-9999" : `CORP-${senderObj.id}`,
+                name: senderObj.name,
                 mobile_number: "+91-0000000000",
                 pincode: "100001",
                 account_type: "Current"
             },
             receiver: {
-                account_number: buyerName.includes("MULE") || buyerName.includes("SHELL") ? "MULE-8888" : "RET-202",
-                name: buyerName,
+                account_number: receiverObj.name.includes("MULE") || receiverObj.name.includes("SHELL") ? "MULE-8888" : `RET-${receiverObj.id}`,
+                name: receiverObj.name,
                 mobile_number: "+91-1111111111",
                 pincode: "100002",
                 account_type: "Savings"
@@ -110,6 +125,21 @@ export default function DataIngestionPage() {
         }];
 
         processRetailData(dummyTransaction);
+    };
+
+    const handleAddPartner = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPartnerName.trim()) return;
+
+        try {
+            await createCompanyMutation.mutateAsync({ name: newPartnerName });
+            setLogs(prev => [...prev, `> NEW PARTNER CREATED: ${newPartnerName}`]);
+            setNewPartnerName("");
+            setShowAddPartner(false);
+            refetchCompanies();
+        } catch (err: any) {
+            setLogs(prev => [...prev, `> ERROR CREATING PARTNER: ${err.message}`]);
+        }
     };
 
     return (
@@ -175,30 +205,95 @@ export default function DataIngestionPage() {
                     <div className="bg-card rounded-2xl p-6 glow-card border border-border/50 flex-1 relative">
                         {status === 'processing' && <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-10 rounded-2xl" />}
 
-                        <div className="flex items-center gap-2 mb-6">
-                            <FileText className="w-5 h-5 text-primary" />
-                            <h2 className="text-xl font-bold text-foreground glow-text uppercase tracking-wider">Single Invoice Entry</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-primary" />
+                                <h2 className="text-xl font-bold text-foreground glow-text uppercase tracking-wider">Single Invoice Entry</h2>
+                            </div>
+                            <button 
+                                onClick={() => setShowAddPartner(!showAddPartner)}
+                                className="text-[10px] text-primary hover:underline uppercase font-bold tracking-widest bg-primary/5 px-2 py-1 rounded border border-primary/20"
+                            >
+                                {showAddPartner ? "Back to Entry" : "+ Add Partner"}
+                            </button>
                         </div>
 
-                        <form className="space-y-4 font-mono text-sm" onSubmit={handleSimulation}>
+                        {showAddPartner ? (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <p className="text-[10px] text-muted-foreground uppercase font-mono">Create new entity in ecosystem</p>
+                                <form onSubmit={handleAddPartner} className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-muted-foreground uppercase font-mono">Partner Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={newPartnerName}
+                                            onChange={(e) => setNewPartnerName(e.target.value)}
+                                            placeholder="e.g. Reliance Logistics"
+                                            className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none font-mono"
+                                        />
+                                    </div>
+                                    <button 
+                                        type="submit" 
+                                        disabled={createCompanyMutation.isPending}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-xl hover:bg-primary/30 transition-all font-bold tracking-wide uppercase group"
+                                    >
+                                        {createCompanyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                        Register Entity
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <form className="space-y-4 font-mono text-sm" onSubmit={handleSimulation}>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs text-muted-foreground uppercase">Sender Entity</label>
-                                    <input type="text" name="supplier" required placeholder="e.g. Apex Global" className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none" />
+                                    <label className="text-xs text-muted-foreground uppercase">Sender (Supplier)</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={senderId}
+                                            onChange={(e) => setSenderId(e.target.value)}
+                                            required
+                                            className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none appearance-none disabled:opacity-50"
+                                            disabled={isLoadingCompanies}
+                                        >
+                                            <option value="">{isLoadingCompanies ? "Loading Partners..." : companiesError ? "Error Loading Data" : "Select Entity..."}</option>
+                                            {companies?.map((c: any) => (
+                                                <option key={c.id} value={c.id}>{c.name} ({c.tier})</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs text-muted-foreground uppercase">Receiver Entity</label>
-                                    <input type="text" name="buyer" required placeholder="e.g. MULE-9000" className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none" />
+                                    <label className="text-xs text-muted-foreground uppercase">Receiver (Buyer)</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={receiverId}
+                                            onChange={(e) => setReceiverId(e.target.value)}
+                                            required
+                                            className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none appearance-none disabled:opacity-50"
+                                            disabled={isLoadingCompanies}
+                                        >
+                                            <option value="">{isLoadingCompanies ? "Loading Partners..." : companiesError ? "Error Loading Data" : "Select Entity..."}</option>
+                                            {companies?.map((c: any) => (
+                                                <option key={c.id} value={c.id}>{c.name} ({c.tier})</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs text-muted-foreground uppercase">Narration</label>
-                                <select name="narration" className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none appearance-none">
-                                    <option value="Salary Credit">Salary Credit</option>
-                                    <option value="Personal Transfer">Personal Transfer</option>
-                                    <option value="Loan Repayment">Loan Repayment (Carousel Risk)</option>
-                                    <option value="Consulting Fee">Consulting Fee (Carousel Risk)</option>
-                                </select>
+                                <div className="relative">
+                                    <select name="narration" className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none appearance-none">
+                                        <option value="Salary Credit">Salary Credit</option>
+                                        <option value="Personal Transfer">Personal Transfer</option>
+                                        <option value="Loan Repayment">Loan Repayment (Carousel Risk)</option>
+                                        <option value="Consulting Fee">Consulting Fee (Carousel Risk)</option>
+                                        <option value="Vendor Payment">Vendor Payment (Loop Signal)</option>
+                                    </select>
+                                    <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
@@ -207,7 +302,7 @@ export default function DataIngestionPage() {
                                 </div>
                                 <div className="space-y-1.5 flex flex-col justify-end">
                                     <div className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded border border-border/50 h-full flex items-center">
-                                        <span><span className="font-bold text-primary">Demo Scripts:</span> Receiver 'MULE-X' or Narration 'Loan Repayment' yields critical anomaly.</span>
+                                        <span><span className="font-bold text-primary">Engine Logic:</span> Selecting 'Mule' entities or 'Carousel' narrations will trigger automated quarantine.</span>
                                     </div>
                                 </div>
                             </div>
@@ -217,8 +312,9 @@ export default function DataIngestionPage() {
                                 Submit to Pipeline
                             </button>
                         </form>
-                    </div>
+                    )}
                 </div>
+            </div>
 
                 {/* Right Column: Processing Terminal */}
                 <div className="bg-black/90 rounded-2xl p-6 border border-primary/20 flex flex-col h-full font-mono relative overflow-hidden shadow-[0_0_30px_rgba(54,255,143,0.05)]">

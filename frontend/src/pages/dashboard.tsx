@@ -3,6 +3,7 @@ import { FraudSimulator } from "@/components/demo/fraud-simulator";
 import { LiveSubmissionForm } from "@/components/demo/live-submission-form";
 import { WhatIfSimulator } from "@/components/demo/what-if-simulator";
 import { ExpandableWrapper } from "@/components/ui/expandable-wrapper";
+import { LenderSwitcher } from "@/components/dashboard/lender-switcher";
 import { Bell, FlaskConical } from "lucide-react";
 
 export default function Dashboard() {
@@ -15,7 +16,8 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1 font-mono text-sm">Deep-tier visibility & anomaly detection active.</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="px-4 py-2 bg-card border border-border/50 rounded-full flex items-center gap-3 shadow-lg">
+          <LenderSwitcher />
+          <div className="hidden md:flex px-4 py-2 bg-card border border-border/50 rounded-full items-center gap-3 shadow-lg">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(54,255,143,0.8)]"></div>
             <span className="text-sm font-mono text-muted-foreground">Live Telemetry</span>
           </div>

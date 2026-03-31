@@ -39,7 +39,41 @@ const revokeCredential = async (req, res) => {
     }
 }
 
+const getCompanies = async (req, res) => {
+    try {
+        const lenderId = req.lenderId;
+        const result = await pool.query('SELECT id, name, tier FROM companies WHERE lender_id = $1 ORDER BY name ASC', [lenderId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching companies:', error);
+        res.status(500).json({ error: 'Failed to fetch companies' });
+    }
+}
+
+const createCompany = async (req, res) => {
+    try {
+        const lenderId = req.lenderId;
+        const { name, tier } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ error: 'Company name is required' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO companies (lender_id, name, tier, annual_revenue, monthly_avg_invoicing) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [lenderId, name, tier || 1, 1000000, 50000] // Defaults for manual entries
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating company:', error);
+        res.status(500).json({ error: 'Failed to create company' });
+    }
+}
+
 module.exports = {
     onboardSupplier,
-    revokeCredential
+    revokeCredential,
+    getCompanies,
+    createCompany
 };
