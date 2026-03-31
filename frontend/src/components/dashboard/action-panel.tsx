@@ -26,14 +26,53 @@ export function ActionPanel() {
   const riskScore = 80;
   const gateStatus = riskScore >= 60 ? "BLOCK" : riskScore >= 30 ? "HOLD" : "GO";
 
-  const handleAction = (type: 'freeze' | 'disburse') => {
+  const handleAction = async (type: 'freeze' | 'disburse' | 'override') => {
     setIsOpen(false);
-    toast({
-      title: type === 'freeze' ? "Disbursement Blocked" : "Funds Disbursed",
-      description: `Action executed successfully. Reason logged: ${reason || 'N/A'}`,
-      variant: type === 'freeze' ? 'destructive' : 'default',
-      className: type === 'freeze' ? '' : 'bg-primary text-primary-foreground border-none',
-    });
+    
+    // In absence of a parent prop, mock the currently selected invoice ID
+    const invoiceId = 'INV-12345';
+    const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+
+    if (type === 'freeze') {
+      toast({
+        title: "Disbursement Blocked",
+        description: `Action executed successfully. Reason logged: ${reason || 'N/A'}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const endpoint = type === 'override' 
+        ? `http://localhost:3000/api/invoices/${invoiceId}/override` 
+        : `http://localhost:3000/api/invoices/${invoiceId}/disburse`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-lender-id': lenderId
+        },
+        body: type === 'override' ? JSON.stringify({ reason }) : undefined
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `${type === 'override' ? 'Override' : 'Disbursement'} failed`);
+      }
+
+      toast({
+        title: type === 'override' ? 'Override applied' : 'Disbursement successful',
+        description: `Validation cleared and invoice approved.`,
+        className: 'bg-primary text-primary-foreground border-none',
+      });
+    } catch (error: any) {
+      toast({
+        title: type === 'override' ? 'Override failed' : 'Disbursement failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -123,7 +162,7 @@ export function ActionPanel() {
               BLOCK Disbursement
             </Button>
             <Button
-              onClick={() => handleAction('disburse')}
+              onClick={() => handleAction(gateStatus === 'BLOCK' || gateStatus === 'HOLD' ? 'override' : 'disburse')}
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={!reason}
             >

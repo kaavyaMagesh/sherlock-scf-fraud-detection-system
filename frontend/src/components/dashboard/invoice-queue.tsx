@@ -17,7 +17,7 @@ export function InvoiceQueue() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDbId, setSelectedDbId] = useState<number | null>(null);
     
-    const { data: details, isLoading: isLoadingDetails } = useInvoiceDetail(selectedDbId ? String(selectedDbId) : null);
+    const { data: details, isLoading: isLoadingDetails, error } = useInvoiceDetail(selectedDbId ? String(selectedDbId) : null);
 
     if (isLoading || !queue) {
         return (
@@ -128,6 +128,14 @@ export function InvoiceQueue() {
                             <div className="flex items-center justify-center h-20">
                                 <span className="text-xs font-mono animate-pulse">Analyzing DNA...</span>
                             </div>
+                        ) : error ? (
+                            <div className="flex flex-col items-center justify-center p-6 text-center bg-destructive/10 rounded-2xl border border-dashed border-destructive/50">
+                                <ShieldAlert className="w-8 h-8 text-destructive mb-2 opacity-80" />
+                                <p className="text-[11px] text-destructive-foreground font-bold uppercase tracking-wider mb-1">Access Denied / Error</p>
+                                <p className="text-[10px] text-destructive/80 font-mono">
+                                    {error instanceof Error ? error.message : "Failed to load invoice details"}
+                                </p>
+                            </div>
                         ) : details ? (
                             <>
                                 <section>
@@ -142,6 +150,22 @@ export function InvoiceQueue() {
                                             <span className="text-xs font-mono text-foreground">{formatCurrency(details.amount)}</span>
                                         </div>
                                         <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground">Supplier ID</span>
+                                            <span className="text-xs font-mono text-foreground">{details.supplier_id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground">Buyer ID</span>
+                                            <span className="text-xs font-mono text-foreground">{details.buyer_id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground">Inv Date</span>
+                                            <span className="text-xs font-mono text-foreground">{details.invoice_date ? String(details.invoice_date).split('T')[0] : 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground">Due Date</span>
+                                            <span className="text-xs font-mono text-foreground">{details.expected_payment_date ? String(details.expected_payment_date).split('T')[0] : 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between mt-2 pt-2 border-t border-border/50">
                                             <span className="text-xs text-muted-foreground">Status</span>
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold bg-muted ${details.status === 'BLOCKED' ? 'text-destructive' : 'text-primary'}`}>{details.status}</span>
                                         </div>

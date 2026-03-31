@@ -143,7 +143,16 @@ export function useInvoiceDetail(id: string | null) {
     queryFn: async () => {
       if (!id) return null;
       const res = await fetch(`${API_BASE}/invoices/${id}`, { headers: getHeaders() });
-      if (!res.ok) throw new Error('Failed to fetch invoice details');
+      if (!res.ok) {
+        let errorMsg = 'Failed to fetch invoice details';
+        try {
+          const errData = await res.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch (e) {
+          // Fall back to generic message
+        }
+        throw new Error(errorMsg);
+      }
       return await res.json();
     },
     enabled: !!id,

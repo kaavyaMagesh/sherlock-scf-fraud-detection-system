@@ -102,29 +102,64 @@ export default function DataIngestionPage() {
         const amount = parseFloat((form.elements.namedItem('amount') as HTMLInputElement).value || '0');
         const narration = (form.elements.namedItem('narration') as HTMLSelectElement).value || 'Transfer';
 
-        // Construct a single Live dummy transaction
-        const dummyTransaction = [{
-            transaction_id: `TXN-${Math.floor(Math.random() * 10000)}`,
-            timestamp: new Date().toISOString(),
+        const invoicePayload = {
+            supplierId: senderId,
+            buyerId: receiverId,
+            poId: `PO-${Math.floor(Math.random() * 10000)}`,
+            grnId: `GRN-${Math.floor(Math.random() * 10000)}`,
+            invoiceNumber: `INV-${Math.floor(Math.random() * 10000)}`,
+            invoiceAmount: amount,
+            invoiceDate: new Date().toISOString(),
+            // Mapping to snake_case format for the Node backend to process correctly
+            supplier_id: senderId,
+            buyer_id: receiverId,
+            po_id: `PO-${Math.floor(Math.random() * 10000)}`,
+            grn_id: `GRN-${Math.floor(Math.random() * 10000)}`,
+            invoice_number: `INV-${Math.floor(Math.random() * 10000)}`,
             amount: amount,
-            narration: narration,
-            sender: {
-                account_number: senderObj.name.includes("MULE") || senderObj.name.includes("SHELL") ? "MULE-9999" : `CORP-${senderObj.id}`,
-                name: senderObj.name,
-                mobile_number: "+91-0000000000",
-                pincode: "100001",
-                account_type: "Current"
-            },
-            receiver: {
-                account_number: receiverObj.name.includes("MULE") || receiverObj.name.includes("SHELL") ? "MULE-8888" : `RET-${receiverObj.id}`,
-                name: receiverObj.name,
-                mobile_number: "+91-1111111111",
-                pincode: "100002",
-                account_type: "Savings"
-            }
-        }];
+            expected_payment_date: new Date().toISOString(),
+            goods_category: narration
+        };
 
-        processRetailData(dummyTransaction);
+        const submitInvoiceForm = async () => {
+            setStatus('processing');
+            setLogs(prev => [...prev, '> INVOICE DATA RECEIVED, SENDING TO BACKEND...', '> POST /api/invoices']);
+
+            try {
+                const token = localStorage.getItem('token');
+                const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+
+                const response = await fetch('http://localhost:3000/api/invoices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'x-lender-id': lenderId
+                    },
+                    body: JSON.stringify(invoicePayload)
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    try {
+                        const err = JSON.parse(text);
+                        throw new Error(err.error || text);
+                    } catch {
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    }
+                }
+
+                const result = await response.json();
+                setLogs(prev => [...prev, '> SYSTEM: INVOICE SUCCESSFULLY PROCESSED', `> Status: ${result.status}`, `> Risk Score: ${result.riskScore}`]);
+                setStatus('complete');
+
+            } catch (error: any) {
+                setLogs(prev => [...prev, '> FATAL: BACKEND REJECTED INVOICE.', `> DETAILS: ${error.message || error.toString()}`]);
+                setStatus('idle');
+            }
+        };
+
+        submitInvoiceForm();
     };
 
     const handleAddPartner = async (e: React.FormEvent) => {

@@ -7,7 +7,7 @@ const generateFingerprint = (supplierId, buyerId, invoiceNumber, amount, invoice
     return crypto.createHash('sha256').update(raw).digest('hex');
 };
 
-const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDate, supplierId, buyerId) => {
+const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDate, supplierId, buyerId, invoiceNumber) => {
     const breakdown = [];
     let penaltyPoints = 0;
 
@@ -18,13 +18,33 @@ const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDat
     const po = poQuery.rows[0];
     const grn = grnQuery.rows[0];
 
-    // If either missing -> Triple Match Fail
-    if (!po || !grn) {
+    // Document presence checks (Invoice -> PO -> GRN)
+    if (!invoiceAmount || !invoiceDate || !supplierId || !buyerId || !invoiceNumber) {
         penaltyPoints += 40;
         breakdown.push({
             factor: 'triple_match_fail',
             points: 40,
-            detail: !po ? 'Purchase Order not found' : 'Goods Receipt Note not found'
+            detail: 'Invoice not provided'
+        });
+        return { valid: false, points: penaltyPoints, breakdown };
+    }
+
+    if (!po) {
+        penaltyPoints += 40;
+        breakdown.push({
+            factor: 'triple_match_fail',
+            points: 40,
+            detail: 'Purchase Order not found'
+        });
+        return { valid: false, points: penaltyPoints, breakdown };
+    }
+
+    if (!grn) {
+        penaltyPoints += 40;
+        breakdown.push({
+            factor: 'triple_match_fail',
+            points: 40,
+            detail: 'Goods Receipt Note not found'
         });
         return { valid: false, points: penaltyPoints, breakdown };
     }
@@ -47,6 +67,11 @@ const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDat
     if (po.supplier_id !== Number(supplierId) || po.buyer_id !== Number(buyerId)) {
         penaltyPoints += 40;
         breakdown.push({ factor: 'entity_mismatch', points: 40, detail: 'Invoice supplier/buyer does not match PO' });
+    }
+
+    if (grn.supplier_id !== Number(supplierId) || grn.buyer_id !== Number(buyerId)) {
+        penaltyPoints += 40;
+        breakdown.push({ factor: 'entity_mismatch_grn', points: 40, detail: 'Supplier/Buyer ID mismatch between Invoice and GRN' });
     }
 
     return { valid: penaltyPoints === 0, points: penaltyPoints, breakdown };
@@ -78,21 +103,16 @@ const detectDuplicates = async (lenderId, fingerprint, supplierId, buyerId, amou
         return { isDuplicate: true, duplicateOf, points: penaltyPoints, breakdown };
     }
 
-    // 2. Fuzzy Duplicate (Same lender, same parties, amt ±2%, date ±3d, diff invoice_number)
-    const amountNum = Number(amount);
-    const amtMin = amountNum * 0.98;
-    const amtMax = amountNum * 1.02;
-
+    // 2. Fuzzy Duplicate (Cross-lender, same parties, exact amount, date ±3d, diff invoice_number)
     const fuzzyCheck = await pool.query(`
         SELECT invoice_number FROM invoices 
-        WHERE lender_id = $1
-        AND supplier_id = $2
-        AND buyer_id = $3
-        AND amount >= $4 AND amount <= $5
-        AND invoice_date >= (CAST($6 AS TIMESTAMP) - INTERVAL '3 days')
-        AND invoice_date <= (CAST($6 AS TIMESTAMP) + INTERVAL '3 days')
-        AND invoice_number != $7
-    `, [lenderId, supplierId, buyerId, amtMin, amtMax, invoiceDate, invoiceNumber]);
+        WHERE supplier_id = $1
+        AND buyer_id = $2
+        AND amount = $3
+        AND invoice_date >= (CAST($4 AS TIMESTAMP) - INTERVAL '3 days')
+        AND invoice_date <= (CAST($4 AS TIMESTAMP) + INTERVAL '3 days')
+        AND invoice_number != $5
+    `, [supplierId, buyerId, amount, invoiceDate, invoiceNumber]);
 
     if (fuzzyCheck.rows.length > 0) {
         duplicateOf = fuzzyCheck.rows[0].invoice_number;
