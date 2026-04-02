@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AlertsPanel, CashTimeline } from "@/components/dashboard/alerts-timeline";
 import { ActionPanel } from "@/components/dashboard/action-panel";
 import { CounterfactualPanel } from "@/components/dashboard/counterfactual-panel";
@@ -5,6 +6,9 @@ import { ExpandableWrapper } from "@/components/ui/expandable-wrapper";
 import { BellRing } from "lucide-react";
 
 export default function AnomalyAlertsPage() {
+    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | number | null>(null);
+    const [selectedAmount, setSelectedAmount] = useState<number | undefined>(undefined);
+
     return (
         <div className="flex-1 overflow-auto bg-transparent p-4 md:p-8 custom-scrollbar flex flex-col space-y-8">
             {/* Header */}
@@ -24,7 +28,12 @@ export default function AnomalyAlertsPage() {
                 {/* Main Alert Feed & Timeline */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                     <div className="flex-1 min-h-[500px]">
-                        <AlertsPanel />
+                        <AlertsPanel 
+                            onSelectAlert={(id, amount) => {
+                                setSelectedInvoiceId(id);
+                                setSelectedAmount(amount);
+                            }} 
+                        />
                     </div>
                     <CashTimeline />
                 </div>
@@ -32,7 +41,10 @@ export default function AnomalyAlertsPage() {
                 {/* Action Controls */}
                 <div className="flex flex-col gap-6">
                     <div className="min-h-[280px] h-full">
-                        <ActionPanel />
+                        <ActionPanel 
+                            selectedInvoiceId={selectedInvoiceId} 
+                            defaultAmount={selectedAmount} 
+                        />
                     </div>
                     <div className="min-h-[380px] h-full">
                         <ExpandableWrapper>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, ShieldAlert, CheckCircle2, AlertOctagon, Ban, PlayCircle, PauseCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,24 +13,59 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-const MOCK_SCORE_BREAKDOWN = [
-  { factor: "carousel_trade_detected", points: 60, detail: "Supplier/Buyer are part of a circular trade chain within 90 days" },
-  { factor: "velocity_anomaly", points: 20, detail: "High velocity: 7 invoices in rolling 1-hour window" },
-];
+interface ActionPanelProps {
+  selectedInvoiceId?: string | number | null;
+  defaultAmount?: number;
+}
 
-export function ActionPanel() {
+export function ActionPanel({ selectedInvoiceId, defaultAmount }: ActionPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState("");
   const { toast } = useToast();
+  const [invoiceData, setInvoiceData] = useState<{ score: number, breakdown: any[], amount: number, status: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const riskScore = 80;
-  const gateStatus = riskScore >= 60 ? "BLOCK" : riskScore >= 30 ? "HOLD" : "GO";
+  useEffect(() => {
+    if (!selectedInvoiceId) {
+      setInvoiceData(null);
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+        
+        const [invRes, auditRes] = await Promise.all([
+          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}`, { headers: { 'x-lender-id': lenderId } }),
+          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}/audits`, { headers: { 'x-lender-id': lenderId } })
+        ]);
+
+        if (invRes.ok && auditRes.ok) {
+          const inv = await invRes.json();
+          const audits = await auditRes.json();
+          
+          setInvoiceData({
+            score: audits.length > 0 ? audits[0].score : 0,
+            breakdown: audits.length > 0 && typeof audits[0].breakdown !== 'string' ? audits[0].breakdown : [],
+            amount: inv.amount || defaultAmount || 0,
+            status: inv.status
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch invoice details", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [selectedInvoiceId, defaultAmount]);
 
   const handleAction = async (type: 'freeze' | 'disburse' | 'override') => {
     setIsOpen(false);
     
-    // In absence of a parent prop, mock the currently selected invoice ID
-    const invoiceId = 'INV-12345';
+    if (!selectedInvoiceId) return;
+
     const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
 
     if (type === 'freeze') {
@@ -44,8 +79,8 @@ export function ActionPanel() {
 
     try {
       const endpoint = type === 'override' 
-        ? `http://localhost:3000/api/invoices/${invoiceId}/override` 
-        : `http://localhost:3000/api/invoices/${invoiceId}/disburse`;
+        ? `http://localhost:3000/api/invoices/${selectedInvoiceId}/override` 
+        : `http://localhost:3000/api/invoices/${selectedInvoiceId}/disburse`;
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -66,6 +101,10 @@ export function ActionPanel() {
         description: `Validation cleared and invoice approved.`,
         className: 'bg-primary text-primary-foreground border-none',
       });
+      
+      // Update local status optimistically
+      setInvoiceData(prev => prev ? { ...prev, status: 'APPROVED' } : null);
+
     } catch (error: any) {
       toast({
         title: type === 'override' ? 'Override failed' : 'Disbursement failed',
@@ -74,6 +113,34 @@ export function ActionPanel() {
       });
     }
   };
+
+  if (!selectedInvoiceId || isLoading) {
+    return (
+      <div className="rounded-2xl p-6 bg-card border border-border/50 h-full flex flex-col items-center justify-center text-center opacity-70">
+        <Shield className="w-12 h-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-semibold text-foreground">Awaiting Selection</h2>
+        <p className="text-sm text-muted-foreground">Select an alert from the threat feed to review and gate its disbursement.</p>
+      </div>
+    );
+  }
+
+  const riskScore = invoiceData?.score || 0;
+  // Fallback inferred gate status if the backend doesn't provide a strict string status
+  let gateStatus = riskScore >= 60 ? "BLOCK" : riskScore >= 30 ? "HOLD" : "GO";
+  
+  // If the invoice is already APPROVED, override it
+  if (invoiceData?.status === 'APPROVED') {
+      gateStatus = "APPROVED";
+  } else if (invoiceData?.status === 'BLOCKED') {
+      gateStatus = "BLOCK";
+  } else if (invoiceData?.status === 'REVIEW') {
+      gateStatus = "HOLD";
+  }
+
+  const breakdown = invoiceData?.breakdown || [];
+  const formattedAmount = invoiceData?.amount 
+    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(invoiceData.amount)
+    : 'N/A';
 
   return (
     <div className={`rounded-2xl p-6 glow-card border h-full flex flex-col items-center justify-center text-center relative overflow-hidden ${gateStatus === 'BLOCK' ? 'bg-destructive/5 border-destructive/30' :
@@ -97,7 +164,7 @@ export function ActionPanel() {
         {gateStatus}
       </div>
       <p className="text-sm text-muted-foreground mb-6 line-clamp-2 px-2">
-        Risk Score: {riskScore}/100. Anomalies detected in invoice batch. Manual review required.
+        {gateStatus === 'APPROVED' ? `Invoice previously approved. Risk Score: ${riskScore}/100.` : `Risk Score: ${riskScore}/100. Anomalies detected in invoice batch. Manual review required.`}
       </p>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -116,60 +183,68 @@ export function ActionPanel() {
               Risk Score Breakdown: {riskScore}/100
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Review specific AI fraud detections before proceeding with the ₹1.25 Cr batch disbursement.
+              Review specific AI fraud detections before proceeding with the {formattedAmount} disbursement for {selectedInvoiceId}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-foreground">Triggered Rules</h4>
-              {MOCK_SCORE_BREAKDOWN.map((rule, idx) => (
+              {breakdown && breakdown.length > 0 ? breakdown.map((rule: any, idx: number) => (
                 <div key={idx} className="p-3 bg-muted/20 border border-border/50 rounded-lg flex gap-4 items-start">
                   <div className="bg-destructive/10 text-destructive font-mono font-bold px-2 py-1 rounded text-xs min-w-[40px] text-center">
-                    +{rule.points}
+                    +{rule.points !== undefined ? rule.points : rule.score !== undefined ? rule.score : '?'}
                   </div>
                   <div>
-                    <div className="font-mono text-sm text-foreground">{rule.factor}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{rule.detail}</div>
+                    <div className="font-mono text-sm text-foreground">{rule.factor || rule.rule || 'Unknown Risk Factor'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{rule.detail || rule.reason || ''}</div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="p-3 bg-muted/10 border border-border/30 rounded-lg text-sm text-muted-foreground">
+                    No risk breakdown details available.
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2 pt-2">
-              <label className="text-sm font-medium text-foreground">Select Override / Justification Code <span className="text-destructive">*</span></label>
-              <Select onValueChange={setReason}>
-                <SelectTrigger className="bg-background border-border focus:ring-primary">
-                  <SelectValue placeholder="Select a reason..." />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="docs_missing">Documentation Missing (GRN/PO)</SelectItem>
-                  <SelectItem value="suspected_fraud">Suspected Fraud / Carousel</SelectItem>
-                  <SelectItem value="kyc_pending">KYC Refresh Pending</SelectItem>
-                  <SelectItem value="cleared">Cleared Exception - Proceed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {gateStatus !== 'APPROVED' && (
+                <div className="space-y-2 pt-2">
+                <label className="text-sm font-medium text-foreground">Select Override / Justification Code <span className="text-destructive">*</span></label>
+                <Select onValueChange={setReason}>
+                    <SelectTrigger className="bg-background border-border focus:ring-primary">
+                    <SelectValue placeholder="Select a reason..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                    <SelectItem value="docs_missing">Documentation Missing (GRN/PO)</SelectItem>
+                    <SelectItem value="suspected_fraud">Suspected Fraud / Carousel</SelectItem>
+                    <SelectItem value="kyc_pending">KYC Refresh Pending</SelectItem>
+                    <SelectItem value="cleared">Cleared Exception - Proceed</SelectItem>
+                    </SelectContent>
+                </Select>
+                </div>
+            )}
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between w-full pt-4 border-t border-border/50">
-            <Button
-              variant="outline"
-              onClick={() => handleAction('freeze')}
-              className="flex-1 bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive hover:text-white"
-            >
-              <Ban className="w-4 h-4 mr-2" />
-              BLOCK Disbursement
-            </Button>
-            <Button
-              onClick={() => handleAction(gateStatus === 'BLOCK' || gateStatus === 'HOLD' ? 'override' : 'disburse')}
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={!reason}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              GO: Override & Disburse
-            </Button>
-          </DialogFooter>
+          {gateStatus !== 'APPROVED' && (
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between w-full pt-4 border-t border-border/50">
+                <Button
+                variant="outline"
+                onClick={() => handleAction('freeze')}
+                className="flex-1 bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive hover:text-white"
+                >
+                <Ban className="w-4 h-4 mr-2" />
+                BLOCK Disbursement
+                </Button>
+                <Button
+                onClick={() => handleAction(gateStatus === 'BLOCK' || gateStatus === 'HOLD' ? 'override' : 'disburse')}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={!reason}
+                >
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                GO: Override & Disburse
+                </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -14,12 +14,43 @@ interface Alert {
   score?: number;
 }
 
-export function AlertsPanel() {
+interface AlertsPanelProps {
+  onSelectAlert?: (invoiceId: string | number, amount?: number) => void;
+}
+
+export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Determine WS URL. Vite proxies default to backend, or use strict localhost:3000
+    // 1. Fetch persistent history from API on load
+    const fetchExistingAlerts = async () => {
+      try {
+        const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+        const res = await fetch(`http://localhost:3000/api/dashboard/alerts?page=1`, {
+          headers: { 'x-lender-id': lenderId }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Map DB columns to Alert interface if needed (like invoice_id -> invoiceId)
+          const mapped = data.map((item: any) => ({
+             ...item,
+             invoiceId: item.invoice_id || item.invoiceId,
+             fingerprint: item.fingerprint || `INV-${item.invoice_id}`,
+             fraudType: item.fraud_type || item.fraudType || 'Systemic Anomaly',
+             severity: item.priority === 'critical' ? 'CRITICAL' : 'WARNING',
+             priority: item.priority || 'high',
+             date: item.created_at || item.date
+          }));
+          setAlerts(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial alerts", err);
+      }
+    };
+    fetchExistingAlerts();
+
+    // 2. Determine WS URL and connect
     const wsUrl = `ws://localhost:3000`;
     const ws = new WebSocket(wsUrl);
 
@@ -30,9 +61,25 @@ export function AlertsPanel() {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'HISTORY') {
-          setAlerts(data.alerts.reverse());
+          // If the backend sends HISTORY ring buffer and we already loaded from DB, 
+          // we prefer DB data if it's more comprehensive, but let's carefully merge or ignore 
+          // if we already have alerts. For simplicity, we just use the REST API on mount now, 
+          // but we can append new ones. 
+          if (data.alerts && data.alerts.length > 0) {
+            setAlerts(prev => {
+                if (prev.length === 0) return data.alerts.reverse();
+                return prev; // keep DB alerts if already loaded
+            });
+          }
         } else if (data.type === 'ALERT') {
-          setAlerts(prev => [data.alert, ...prev].slice(0, 50));
+          setAlerts(prev => {
+              // Map incoming alert if needed to match DB structure
+              const mappedAlert = {
+                  ...data.alert,
+                  invoiceId: data.alert.invoice_id || data.alert.invoiceId,
+              };
+              return [mappedAlert, ...prev].slice(0, 50);
+          });
         }
       } catch (e) {
         console.error("WS Parse error", e);
@@ -44,11 +91,7 @@ export function AlertsPanel() {
     };
   }, []);
 
-  // Use mock data if empty
-  const displayAlerts = alerts.length > 0 ? alerts : [
-    { id: 1, invoiceId: 992, fingerprint: "INV-992-A8X", fraudType: "carousel_trade_detected", severity: "CRITICAL", amount: 125000, date: new Date().toISOString() },
-    { id: 2, invoiceId: 104, fingerprint: "INV-104-B2Y", fraudType: "velocity_anomaly", severity: "WARNING", amount: 84000, date: new Date(Date.now() - 3600000).toISOString() },
-  ];
+  const displayAlerts = alerts;
 
   return (
     <div className="bg-card rounded-2xl p-6 glow-card border border-border/50 h-full flex flex-col">
@@ -74,49 +117,58 @@ export function AlertsPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-        {displayAlerts.map((alert, idx) => {
-          const isCritical = alert.severity === 'CRITICAL' || alert.priority === 'critical';
-          const priorityLabel = alert.severity || alert.priority?.toUpperCase() || 'WARNING';
+        {displayAlerts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-70 p-4">
+            <AlertTriangle className="w-10 h-10 text-muted-foreground mb-3 opacity-50" />
+            <span className="text-sm font-semibold text-foreground">No Active Threats</span>
+            <span className="text-xs text-muted-foreground mt-1">Watching network traffic for anomalies...</span>
+          </div>
+        ) : (
+          displayAlerts.map((alert, idx) => {
+            const isCritical = alert.severity === 'CRITICAL' || alert.priority === 'critical';
+            const priorityLabel = alert.severity || alert.priority?.toUpperCase() || 'WARNING';
 
-          return (
-            <div
-              key={alert.id || idx}
-              className={`p-4 rounded-xl border flex flex-col gap-2 transition-all hover:translate-x-1 ${isCritical ? 'bg-destructive/10 border-destructive/50 shadow-[0_0_10px_rgba(220,38,38,0.1)]' :
-                  'bg-warning/10 border-warning/50'
-                }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className={`w-4 h-4 ${isCritical ? 'text-destructive animate-pulse' : 'text-warning'
-                    }`} />
-                  <span className="font-mono text-sm font-bold tracking-wide">
-                    {alert.fingerprint || `INV-${alert.invoiceId}`}
+            return (
+              <div
+                key={alert.id || idx}
+                onClick={() => onSelectAlert && alert.invoiceId && onSelectAlert(alert.invoiceId, alert.amount)}
+                className={`p-4 rounded-xl border flex flex-col gap-2 transition-all hover:translate-x-1 ${onSelectAlert ? 'cursor-pointer' : ''} ${isCritical ? 'bg-destructive/10 border-destructive/50 shadow-[0_0_10px_rgba(220,38,38,0.1)]' :
+                    'bg-warning/10 border-warning/50'
+                  }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 ${isCritical ? 'text-destructive animate-pulse' : 'text-warning'
+                      }`} />
+                    <span className="font-mono text-sm font-bold tracking-wide">
+                      {alert.fingerprint || `INV-${alert.invoiceId}`}
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded uppercase font-bold tracking-wider ${isCritical ? 'bg-destructive text-destructive-foreground' :
+                      'bg-warning text-warning-foreground'
+                    }`}>
+                    {priorityLabel}
                   </span>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded uppercase font-bold tracking-wider ${isCritical ? 'bg-destructive text-destructive-foreground' :
-                    'bg-warning text-warning-foreground'
-                  }`}>
-                  {priorityLabel}
-                </span>
-              </div>
 
-              <div className="text-sm text-foreground/90 font-medium my-1">
-                {alert.fraudType || "Network Anomaly Detected"}
-                {alert.score && <span className="ml-2 font-mono text-muted-foreground">(Score: {alert.score})</span>}
-              </div>
+                <div className="text-sm text-foreground/90 font-medium my-1">
+                  {alert.fraudType || "Network Anomaly Detected"}
+                  {alert.score !== undefined && <span className="ml-2 font-mono text-muted-foreground">(Score: {alert.score})</span>}
+                </div>
 
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-muted-foreground font-mono">
-                  {alert.entityName ? `Entity: ${alert.entityName}` : alert.amount ? `Exposure: $${Number(alert.amount).toLocaleString()}` : 'System Alert'}
-                </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {new Date(alert.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-muted-foreground font-mono">
+                    {alert.entityName ? `Entity: ${alert.entityName}` : alert.amount ? `Exposure: ₹${Number(alert.amount).toLocaleString('en-IN')}` : 'System Alert'}
+                  </span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(alert.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
     </div>
   );
