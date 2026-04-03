@@ -27,7 +27,7 @@ const seedData = async () => {
         const companies = [];
         for (const lender of lenders) {
             console.log(`--> Seeding companies for Lender: ${lender.name} (ID: ${lender.id})`);
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 5; i++) {
                 const res = await pool.query(
                     `INSERT INTO companies (lender_id, name, tier, annual_revenue, monthly_avg_invoicing, first_invoice_date, last_invoice_date, industry_code)
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
@@ -45,15 +45,15 @@ const seedData = async () => {
                 companies.push(res.rows[0]);
             }
         }
-        const suppliers = companies.slice(0, 30);
-        const buyers = companies.slice(30, 50);
+        const suppliers = companies.slice(0, 10);
+        const buyers = companies.slice(10, 15);
         console.log("-> Companies created");
 
         // --- SPECIFIC FRAUD SCENARIOS FOR DEMO ---
 
         // SCENARIO 1: 5 Phantom Invoices (No matching PO/GRN)
         console.log("-> Generating Scenario 1: Phantom Invoices");
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 2; i++) {
             const s = faker.helpers.arrayElement(suppliers).id;
             const b = faker.helpers.arrayElement(buyers).id;
             const cat = faker.helpers.arrayElement(['Industrial Steel', 'Electronics', 'Chemicals']);
@@ -124,7 +124,7 @@ const seedData = async () => {
             [faker.date.past({ years: 1 }), faker.date.recent({ days: 100 }), dormantSupplier.id]); // > 90 days ago
 
         const burstTime = new Date();
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 5; i++) {
             burstTime.setMinutes(burstTime.getMinutes() + 5); // 5 mins apart
             const res = await pool.query(
                 `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
@@ -166,7 +166,7 @@ const seedData = async () => {
         const nightTime = new Date();
         nightTime.setUTCHours(3, 15, 0, 0); // 3:15 AM
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 3; i++) {
             nightTime.setMinutes(nightTime.getMinutes() + 2); // 2 mins apart
             const res = await pool.query(
                 `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
@@ -180,9 +180,9 @@ const seedData = async () => {
         }
 
         // NORMAL SEED DATA (Remaining ~450+ clean/random invoices + associated PO/GRN)
-        console.log("-> Generating Bulk Clean Data (~460 records)");
+        console.log("-> Generating Bulk Clean Data (~20 records)");
         let cleanCount = 0;
-        for (let i = 0; i < 460; i++) {
+        for (let i = 0; i < 20; i++) {
             const supp = faker.helpers.arrayElement(suppliers);
             const buy = faker.helpers.arrayElement(buyers);
             const lendId = faker.helpers.arrayElement(lenders).id;
@@ -253,20 +253,68 @@ const seedData = async () => {
         const rootAmt = 1000000;
         const rootPo = await pool.query(
             `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic') RETURNING id`,
-            [mainLender, buyers[4].id, suppliers[8].id, rootAmt]
+            [mainLender, buyers[2].id, suppliers[1].id, rootAmt]
         );
         const rootId = rootPo.rows[0].id;
 
         // Sub-tier financing
         await pool.query(
             `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category, root_po_id) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic', $5)`,
-            [mainLender, suppliers[8].id, suppliers[9].id, 600000, rootId]
+            [mainLender, suppliers[1].id, suppliers[2].id, 600000, rootId]
         );
         await pool.query(
             `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category, root_po_id) VALUES ($1, $2, $3, $4, NOW(), 'Cascade Logic', $5)`,
-            [mainLender, suppliers[8].id, suppliers[10].id, 600000, rootId]
+            [mainLender, suppliers[1].id, suppliers[3].id, 600000, rootId]
         );
         // Total financed = 1.2M > 1M (1.2x ratio > 1.1x threshold)
+
+        // SCENARIO 8: Layer 6 — AI / Semantic Layer Anomalies
+        console.log("-> Generating Scenario 8: Layer 6 AI / Semantic Fraud");
+        
+        // 8a. Goods Description Mismatch (Feature 45)
+        const mismatchSupp = suppliers[4].id;
+        const mismatchBuy = buyers[3].id;
+        const mismatchInvId = `MISMATCH-${faker.number.int({ min: 100, max: 998 })}`;
+        const mismatchAmt = 450000;
+        
+        const misPoRes = await pool.query(
+            `INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, po_date, goods_category) VALUES ($1, $2, $3, $4, NOW(), 'High-grade Structural Steel Beams (Grade 50)') RETURNING id`,
+            [mainLender, mismatchBuy, mismatchSupp, mismatchAmt * 1.05]
+        );
+        
+        const misInvRes = await pool.query(
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category, delivery_location, payment_terms)
+             VALUES ($1, $2, $3, null, $4, $5, $6, NOW(), NOW(), 'REVIEW', 65, 'Industrial Scrap Metal / Mixed Waste', 'Port of Singapore', 'Net 30') RETURNING id`,
+            [mainLender, mismatchInvId, misPoRes.rows[0].id, mismatchSupp, mismatchBuy, mismatchAmt]
+        );
+        const misId = misInvRes.rows[0].id;
+        await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
+            misId, 65, JSON.stringify([{ factor: 'semantic_mismatch', points: 35, detail: 'Critical discrepancy: PO requests High-grade Steel, but Invoice specifies Scrap/Waste.' }])
+        ]);
+        await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
+            misId, mainLender, 'HIGH', 'semantic_mismatch', 'Economic substitution detected: High-value steel replaced by scrap.'
+        ]);
+
+        // 8b. Geographical & Timeline Anomaly (Layer 6 Addition)
+        const geoSupp = suppliers[0].id;
+        const geoBuy = buyers[1].id;
+        const geoInvId = `GEO-TIME-${faker.number.int({ min: 100, max: 998 })}`;
+        
+        const geoInvRes = await pool.query(
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category, delivery_location, payment_terms)
+             VALUES ($1, $2, null, null, $3, $4, 850000, NOW(), NOW(), 'REVIEW', 75, 'Aviation Fuel (Jet A-1)', 'Floor 42, Luxury Residential Tower, Mumbai Central', 'Immediate Net-1 (1 Day)') RETURNING id`,
+            [mainLender, geoInvId, geoSupp, geoBuy]
+        );
+        const gId = geoInvRes.rows[0].id;
+        await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
+            gId, 75, JSON.stringify([
+                { factor: 'geographical_anomaly', points: 25, detail: 'Fuel delivery to a high-rise residential building is logistically impossible.' },
+                { factor: 'payment_timeline_anomaly', points: 20, detail: 'Net-1 payment terms for $850k jet fuel are outside standard refinery trade norms.' }
+            ])
+        ]);
+        await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
+            gId, mainLender, 'HIGH', 'geographical_anomaly', 'Logistics/Location plausibility failure (Layer 6 Signal)'
+        ]);
 
         await pool.query('COMMIT');
         console.log(`Seed Data Generation Complete! Generated explicit fraud patterns + ${cleanCount} clean records.`);

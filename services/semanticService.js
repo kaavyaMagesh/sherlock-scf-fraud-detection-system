@@ -8,18 +8,20 @@ const pool = require('../db/index');
 
 const verifyDocumentConsistency = async (invoice, po, grn) => {
     const prompt = `
-        Analyze the consistency across these 3 trade documents for potential supply chain fraud:
-        1. Invoice Description: "${invoice.description || 'N/A'}"
-        2. Purchase Order Description: "${po.description || 'N/A'}"
-        3. Goods Receipt Note Description: "${grn.description || 'N/A'}"
+        Analyze the consistency across these 3 trade documents for potential supply chain fraud (Technical/Semantic Analysis):
+        1. Invoice: "${invoice.description || 'N/A'}" (Amt: ${invoice.amount || 'N/A'})
+        2. Purchase Order: "${po.description || 'N/A'}" (Amt: ${po.amount || 'N/A'})
+        3. Goods Receipt: "${grn.description || 'N/A'}" (Recv status: ${grn.received || 'N/A'})
 
-        Rules:
-        - Flag mismatch between high-value goods (e.g., 'Steel') vs low-value/scrap (e.g., 'Industrial Waste').
-        - Flag suspicious quantity/unit differences.
-        - Return JSON format: { "isConsistent": boolean, "mismatchReason": string, "riskPoints": number (0-40) }
+        Scanning rules for AI:
+        - **Goods Description Mismatch**: Flag high-value goods (e.g., 'High-grade Steel', 'New Machinery') vs low-value/dummy/scrap (e.g., 'Industrial Waste', 'Scrap Metal', 'Misc Scrap').
+        - **Technical Fraud**: Scan for inconsistencies in technical terms, unit types (e.g. 'kg' vs 'units'), or HS codes if present in descriptions.
+        - **Phantom Patterns**: Watch for "vague-to-specific" escalation (PO is vague, but Invoice is highly specific for different goods).
+        - **Quantity Consistency**: Check if quantity/volume in descriptions aligns across documents.
+        
+        Return JSON format only: { "isConsistent": boolean, "mismatchReason": string, "riskPoints": number (0-40) }
     `;
 
-    // Using descriptions as cache key (simplified)
     const cacheKey = `consistency-${invoice.description}-${po.description}-${grn.description}`;
     const response = await llmService.generateContent(prompt, cacheKey);
 
@@ -28,7 +30,58 @@ const verifyDocumentConsistency = async (invoice, po, grn) => {
         const jsonBlock = trimmed.match(/\{[\s\S]*\}/);
         return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
     } catch (e) {
-        return { isConsistent: true, mismatchReason: 'LLM response not valid JSON; skipped penalty', riskPoints: 0 };
+        return { isConsistent: true, mismatchReason: 'LLM response not valid JSON', riskPoints: 0 };
+    }
+};
+
+const checkGeographyPlausibility = async (supplier, deliveryLocation, goods) => {
+    if (!deliveryLocation || !goods) return { isPlausible: true, points: 0 };
+
+    const prompt = `
+        Analyze the geographical plausibility of this shipment:
+        Supplier: "${supplier.name}" (Sector: ${supplier.industry || 'General'})
+        Delivery Location: "${deliveryLocation}"
+        Goods: "${goods}"
+
+        Is it unusual for this type of goods to be delivered to this location? 
+        (e.g., 100 tons of heavy machinery delivered to a residential zip code or a remote island with no industrial port).
+        Return JSON format only: { "isPlausible": boolean, "points": number (0-25), "reason": string }
+    `;
+
+    const response = await llmService.generateContent(prompt, `geo-${deliveryLocation}-${goods}`);
+    try {
+        const trimmed = String(response).trim();
+        const jsonBlock = trimmed.match(/\{[\s\S]*\}/);
+        return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
+    } catch (e) {
+        return { isPlausible: true, points: 0 };
+    }
+};
+
+const checkPaymentTimelineNorms = async (invoice, supplier) => {
+    const terms = invoice.payment_terms || 'N/A';
+    const amount = invoice.amount || 0;
+
+    const prompt = `
+        Analyze the payment timeline for this trade:
+        Supplier Industry: "${supplier.industry || 'General'}"
+        Invoice Amount: "${amount}"
+        Claimed Payment Terms: "${terms}"
+        Invoice Date: "${invoice.invoice_date}"
+        Expected Payment: "${invoice.expected_payment_date}"
+
+        Is this timeline suspicious or outside industry norms? 
+        (e.g., Immediate 1-day payment for a $10M construction project, or 360-day terms for perishable food).
+        Return JSON format only: { "isNormal": boolean, "points": number (0-20), "reason": string }
+    `;
+
+    const response = await llmService.generateContent(prompt, `terms-${terms}-${amount}`);
+    try {
+        const trimmed = String(response).trim();
+        const jsonBlock = trimmed.match(/\{[\s\S]*\}/);
+        return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
+    } catch (e) {
+        return { isNormal: true, points: 0 };
     }
 };
 
@@ -85,5 +138,7 @@ const analyzeSupplierSimilarity = async (supplierId) => {
 module.exports = {
     verifyDocumentConsistency,
     checkVagueDescriptions,
-    analyzeSupplierSimilarity
+    analyzeSupplierSimilarity,
+    checkGeographyPlausibility,
+    checkPaymentTimelineNorms
 };
