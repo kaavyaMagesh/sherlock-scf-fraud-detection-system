@@ -35,47 +35,143 @@ function detectImpatienceSignal(breakdown) {
 function classifyFraudDNA(breakdown) {
     if (!breakdown || breakdown.length === 0) {
         return {
-            typology: 'LOW_RISK_PROFILE',
-            confidence: 88,
-            evidence: ['No fraud-rule factors fired in the latest risk audit.'],
-            action: 'Continue standard monitoring; re-run scoring after material document changes.'
+            typologies: [{
+                label: 'LOW_RISK_PROFILE',
+                confidence: 88,
+                action: 'Continue standard monitoring; re-run scoring after material document changes.',
+                isPrimary: true
+            }],
+            evidence: ['No fraud-rule factors fired in the latest risk audit.']
         };
     }
 
+    /**
+     * Sum the numeric point values for all breakdown items whose factor is in
+     * the given targetFactors list. Handles numeric points, string multipliers
+     * (e.g. "x1.3"), and string integers gracefully.
+     */
+    const sumPoints = (targetFactors) =>
+        breakdown
+            .filter(b => targetFactors.includes(b.factor))
+            .reduce((total, b) => {
+                const pts =
+                    typeof b.points === 'number' ? b.points
+                    : typeof b.points === 'string' && b.points.startsWith('x') ? 20
+                    : parseInt(String(b.points), 10) || 0;
+                return total + pts;
+            }, 0);
+
     const factors = breakdown.map(b => b.factor);
-
-    let typology = "UNKNOWN_PATTERN";
-    let confidence = 50;
+    let typologies = [];
     let evidence = breakdown.map(b => b.detail).filter(Boolean).slice(0, 5);
-    let action = "Manual review recommended";
 
+    // ── DOUBLE_FINANCING ──────────────────────────────────────────────────────
+    // Triggered by exact or fuzzy duplicate detection; points can be very high
+    // (duplicate penalties are typically 40–60 pts each).
     if (factors.includes('exact_duplicate') || factors.includes('fuzzy_duplicate')) {
-        typology = "DOUBLE_FINANCING";
-        confidence = 95;
-        action = "Block disbursement immediately and notify compliance";
-    } else if (factors.includes('vague_description') || factors.includes('triple_match_fail') || factors.includes('semantic_mismatch')) {
-        typology = "PHANTOM_INVOICE";
-        confidence = 85 + (factors.includes('vague_description') && factors.includes('triple_match_fail') ? 10 : 0);
-        action = "Freeze supplier account and request original shipping documents";
-    } else if (factors.includes('carousel_trade_detected')) {
-        typology = "CAROUSEL_TRADE";
-        confidence = 90;
-        action = "Investigate connected entities for circular money flow";
-    } else if (factors.includes('cascade_over_financing')) {
-        typology = "CROSS_TIER_CASCADE";
-        confidence = 88;
-        action = "Review supply chain root PO and financing limits";
-    } else if (factors.includes('dormant_entity_burst')) {
-        typology = "DORMANT_ENTITY_BURST";
-        confidence = 80;
-        action = "Require enhanced due diligence for account reactivation";
-    } else if (factors.includes('dilution_rate_high') || factors.includes('payment_term_anomaly')) {
-        typology = "DILUTION_FRAUD";
-        confidence = 75;
-        action = "Audit historical settlement patterns for this supplier";
+        const pts = sumPoints(['exact_duplicate', 'fuzzy_duplicate']);
+        typologies.push({
+            label: "DOUBLE_FINANCING",
+            confidence: Math.min(99, Math.max(70, pts)),
+            action: "Block disbursement immediately and notify compliance"
+        });
     }
 
-    return { typology, confidence, evidence, action };
+    // ── PHANTOM_INVOICE ───────────────────────────────────────────────────────
+    // Triggered by document-quality failures; sum points from all three factors.
+    if (factors.includes('vague_description') || factors.includes('triple_match_fail') || factors.includes('semantic_mismatch')) {
+        const pts = sumPoints(['vague_description', 'triple_match_fail', 'semantic_mismatch']);
+        typologies.push({
+            label: "PHANTOM_INVOICE",
+            confidence: Math.min(99, Math.max(60, pts)),
+            action: "Freeze supplier account and request original shipping documents"
+        });
+    }
+
+    // ── CAROUSEL_TRADE ────────────────────────────────────────────────────────
+    if (factors.includes('carousel_trade_detected')) {
+        const pts = sumPoints(['carousel_trade_detected']);
+        typologies.push({
+            label: "CAROUSEL_TRADE",
+            confidence: Math.min(99, Math.max(65, pts)),
+            action: "Investigate connected entities for circular money flow"
+        });
+    }
+
+    // ── CROSS_TIER_CASCADE ────────────────────────────────────────────────────
+    if (factors.includes('cascade_over_financing')) {
+        const pts = sumPoints(['cascade_over_financing']);
+        typologies.push({
+            label: "CROSS_TIER_CASCADE",
+            confidence: Math.min(99, Math.max(60, pts)),
+            action: "Review supply chain root PO and financing limits"
+        });
+    }
+
+    // ── DORMANT_ENTITY_BURST ──────────────────────────────────────────────────
+    if (factors.includes('dormant_entity_burst')) {
+        const pts = sumPoints(['dormant_entity_burst']);
+        typologies.push({
+            label: "DORMANT_ENTITY_BURST",
+            confidence: Math.min(99, Math.max(55, pts)),
+            action: "Require enhanced due diligence for account reactivation"
+        });
+    }
+
+    // ── DILUTION_FRAUD ────────────────────────────────────────────────────────
+    if (factors.includes('dilution_rate_high') || factors.includes('payment_term_anomaly')) {
+        const pts = sumPoints(['dilution_rate_high', 'payment_term_anomaly']);
+        typologies.push({
+            label: "DILUTION_FRAUD",
+            confidence: Math.min(99, Math.max(50, pts)),
+            action: "Audit historical settlement patterns for this supplier"
+        });
+    }
+
+    // ── OVER_INVOICING ────────────────────────────────────────────────────────
+    // Confidence is delta-driven; regex hardened with try/catch + looser pattern
+    // so detail-string format drift doesn't silently produce wrong values.
+    if (factors.includes('amount_tolerance_fail')) {
+        let baseConf = 75;
+        try {
+            const tolFactor = breakdown.find(b => b.factor === 'amount_tolerance_fail');
+            if (tolFactor && typeof tolFactor.detail === 'string') {
+                // Looser regex: tolerates varied spacing and wording around the numbers
+                const match = tolFactor.detail.match(
+                    /Invoice amount\s+([\d.]+).*?tolerance\s*\(\s*([\d.]+)\s*\)/i
+                );
+                if (match) {
+                    const invAmt = parseFloat(match[1]);
+                    const poAmt  = parseFloat(match[2]);
+                    if (Number.isFinite(invAmt) && Number.isFinite(poAmt) && poAmt > 0 && invAmt > poAmt) {
+                        baseConf = Math.min(99, Math.round(70 + ((invAmt - poAmt) / poAmt) * 100));
+                    }
+                }
+            }
+        } catch (_) {
+            // Regex or parse failed — silently fall back to base confidence of 75
+        }
+        typologies.push({
+            label: "OVER_INVOICING",
+            confidence: baseConf,
+            action: "Request original purchase order and verify contracted amounts with buyer directly."
+        });
+    }
+
+    if (typologies.length === 0) {
+        typologies.push({
+            label: "UNKNOWN_PATTERN",
+            confidence: 50,
+            action: "Manual review recommended"
+        });
+    } else {
+        typologies.sort((a, b) => b.confidence - a.confidence);
+    }
+
+    // Assign primary typology (highest confidence after sort)
+    if (typologies.length > 0) typologies[0].isPrimary = true;
+
+    return { typologies, evidence };
 }
 
 async function generateExplanation(invoiceId, riskResult) {

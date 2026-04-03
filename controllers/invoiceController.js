@@ -160,6 +160,18 @@ const getInvoiceDetails = async (req, res) => {
             fraudDNA = explainabilityService.classifyFraudDNA(breakdown);
         }
 
+        // Counterfactual: prefer persisted value; derive on-the-fly for older invoices with no explanation row
+        let counterfactual = invoice.counterfactual || null;
+        if (!counterfactual && breakdown.length > 0) {
+            counterfactual = explainabilityService.generateCounterfactual(id, invoice.risk_score || 0, breakdown);
+        }
+
+        // Impatience signal: prefer persisted string; derive on-the-fly if missing
+        let impatienceSignal = invoice.impatience_signal || null;
+        if (!impatienceSignal && breakdown.length > 0) {
+            impatienceSignal = explainabilityService.detectImpatienceSignal(breakdown);
+        }
+
         const grnDesc =
             invoice.grn_amount != null
                 ? `Goods receipt — amount received: ${invoice.grn_amount} (aligned to PO line items where applicable)`
@@ -169,6 +181,8 @@ const getInvoiceDetails = async (req, res) => {
             ...invoice,
             breakdown,
             fraudDNA,
+            counterfactual,
+            impatience_signal: impatienceSignal,
             semanticData: {
                 invoiceDescription: invoice.goods_category || '',
                 poDescription: invoice.po_description || '',

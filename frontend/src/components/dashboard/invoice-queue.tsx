@@ -158,7 +158,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                             >
                                 <History className="w-4 h-4" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setSelectedId(null); }} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors ml-1">
+                            <button onClick={(e) => { e.stopPropagation(); setSelectedId(null); if (onSelectInvoice) onSelectInvoice(null); }} className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-muted text-muted-foreground ml-1">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
