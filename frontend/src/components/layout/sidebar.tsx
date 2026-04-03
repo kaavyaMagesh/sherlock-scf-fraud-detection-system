@@ -6,13 +6,17 @@ import {
   ShieldCheck,
   BellRing,
   Upload,
-  Database
+  Database,
+  PackageOpen,
+  LogOut
 } from "lucide-react";
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
-  const navItems = [
+  const userRole = localStorage.getItem("userRole");
+
+  const allNavItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/ingestion", label: "Data Ingestion", icon: Upload },
     { href: "/topology", label: "Network Topology", icon: Network },
@@ -20,7 +24,17 @@ export function AppSidebar() {
     { href: "/alerts", label: "Anomaly Alerts", icon: BellRing },
     { href: "/velocity", label: "Velocity Monitor", icon: Activity },
     { href: "/retail-fraud", label: "Retail Fraud Map", icon: Database },
+    { href: "/erp-portal", label: "Buyer/Supplier ERP", icon: PackageOpen },
   ];
+
+  const navItems = (userRole === "BUYER" || userRole === "SUPPLIER")
+      ? allNavItems.filter(item => item.href === "/erp-portal")
+      : allNavItems.filter(item => item.href !== "/erp-portal");
+
+  const handleLogout = () => {
+    localStorage.clear();
+    setLocation('/login');
+  };
 
   return (
     <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border hidden md:flex flex-col flex-shrink-0 z-50">
@@ -58,6 +72,16 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      <div className="p-4 border-t border-sidebar-border mt-auto">
+         <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 group"
+         >
+            <LogOut className="w-5 h-5 group-hover:text-destructive" />
+            <span className="font-medium text-sm">Logout</span>
+         </button>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ const pool = new Pool({
 
 const executeSchema = async () => {
   const ddl = `
-    DROP TABLE IF EXISTS manual_overrides, explanations, alerts, risk_score_audits, settlements, invoice_fingerprints, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders CASCADE;
+    DROP TABLE IF EXISTS manual_overrides, explanations, alerts, risk_score_audits, settlements, invoice_fingerprints, portal_users, delivery_confirmations, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders, retail_transactions, retail_accounts CASCADE;
 
     CREATE TABLE IF NOT EXISTS lenders (
       id SERIAL PRIMARY KEY,
@@ -32,6 +32,7 @@ const executeSchema = async () => {
       verifiable_credential TEXT,
       credential_verified BOOLEAN DEFAULT FALSE,
       is_revoked BOOLEAN DEFAULT FALSE,
+      role VARCHAR(20) DEFAULT 'BOTH',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -56,6 +57,7 @@ const executeSchema = async () => {
       buyer_id INTEGER REFERENCES companies(id),
       supplier_id INTEGER REFERENCES companies(id),
       amount NUMERIC(15,2),
+      quantity INTEGER,
       goods_category VARCHAR(100),
       po_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -66,7 +68,19 @@ const executeSchema = async () => {
       lender_id INTEGER REFERENCES lenders(id),
       po_id INTEGER REFERENCES purchase_orders(id),
       amount_received DECIMAL,
+      quantity INTEGER,
       grn_date TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS delivery_confirmations (
+      id SERIAL PRIMARY KEY,
+      grn_id INTEGER REFERENCES goods_receipts(id),
+      lender_id INTEGER REFERENCES lenders(id),
+      confirmed_by VARCHAR(255),
+      delivery_date TIMESTAMP,
+      delivery_status VARCHAR(20),
+      notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -80,9 +94,11 @@ const executeSchema = async () => {
       buyer_id INTEGER REFERENCES companies(id),
       amount NUMERIC(15,2),
       goods_category VARCHAR(100),
+      delivery_location VARCHAR(255),
+      payment_terms VARCHAR(255),
       invoice_date TIMESTAMP,
       expected_payment_date TIMESTAMP,
-      status VARCHAR(20) DEFAULT 'PENDING',
+      status VARCHAR(20) DEFAULT 'PENDING_VERIFICATION',
       risk_score INTEGER,
       created_at TIMESTAMP DEFAULT NOW()
     );
@@ -138,6 +154,16 @@ const executeSchema = async () => {
       invoice_id INTEGER REFERENCES invoices(id),
       reason_log TEXT NOT NULL,
       auditor_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS portal_users (
+      id SERIAL PRIMARY KEY,
+      company_id INTEGER REFERENCES companies(id),
+      lender_id INTEGER REFERENCES lenders(id),
+      role VARCHAR(20),
+      email VARCHAR(255) UNIQUE,
+      password_hash VARCHAR(255),
       created_at TIMESTAMP DEFAULT NOW()
     );
 

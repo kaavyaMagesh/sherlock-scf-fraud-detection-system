@@ -8,6 +8,8 @@ const scoreRoutes = require('./routes/scoreRoutes');
 const graphRoutes = require('./routes/graphRoutes');
 const explainRoutes = require('./routes/explainRoutes');
 const retailRoutes = require('./routes/retailRoutes');
+const authRoutes = require('./routes/authRoutes');
+const erpRoutes = require('./routes/erpRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +22,8 @@ app.use(express.json());
 app.use('/api/retail', retailRoutes);
 
 // Main APIs (Authenticated via x-lender-id)
+app.use('/api/auth', authRoutes);
+app.use('/api/erp', erpRoutes);
 app.use('/api', ingestionRoutes);
 app.use('/api', dashboardRoutes); // /alerts and /lender/:id/portfolio
 app.use('/api/invoices', invoiceRoutes);

@@ -1,0 +1,171 @@
+--- 1. Purchase Orders (DESC 5) ---
+[
+  {
+    "id": 12,
+    "buyer_id": 1,
+    "supplier_id": 4,
+    "lender_id": 1,
+    "amount": "20000.00",
+    "goods_category": "screws"
+  },
+  {
+    "id": 10,
+    "buyer_id": 2,
+    "supplier_id": 6,
+    "lender_id": 1,
+    "amount": "338491.00",
+    "goods_category": "Auto Parts"
+  },
+  {
+    "id": 9,
+    "buyer_id": 1,
+    "supplier_id": 5,
+    "lender_id": 1,
+    "amount": "51003.00",
+    "goods_category": "Auto Parts"
+  },
+  {
+    "id": 8,
+    "buyer_id": 3,
+    "supplier_id": 4,
+    "lender_id": 1,
+    "amount": "77998.00",
+    "goods_category": "Auto Parts"
+  },
+  {
+    "id": 7,
+    "buyer_id": 2,
+    "supplier_id": 7,
+    "lender_id": 1,
+    "amount": "204681.00",
+    "goods_category": "Auto Parts"
+  }
+]
+
+--- 2. Companies ---
+[
+  {
+    "id": 1,
+    "name": "Tata Motors",
+    "role": "BUYER"
+  },
+  {
+    "id": 2,
+    "name": "Reliance Industries",
+    "role": "BUYER"
+  },
+  {
+    "id": 3,
+    "name": "Maruti Suzuki",
+    "role": "BUYER"
+  },
+  {
+    "id": 4,
+    "name": "Bosch India",
+    "role": "SUPPLIER"
+  },
+  {
+    "id": 5,
+    "name": "Motherson Sumi",
+    "role": "SUPPLIER"
+  },
+  {
+    "id": 6,
+    "name": "Endurance Tech",
+    "role": "SUPPLIER"
+  },
+  {
+    "id": 7,
+    "name": "Bharat Forge",
+    "role": "SUPPLIER"
+  }
+]
+
+--- 3. POs for Bosch (id: 4) ---
+[
+  {
+    "id": 4,
+    "buyer_id": 2,
+    "supplier_id": 4,
+    "lender_id": 1
+  },
+  {
+    "id": 8,
+    "buyer_id": 3,
+    "supplier_id": 4,
+    "lender_id": 1
+  },
+  {
+    "id": 12,
+    "buyer_id": 1,
+    "supplier_id": 4,
+    "lender_id": 1
+  }
+]
+
+--- 4. Portal Users ---
+[
+  {
+    "id": 1,
+    "company_id": null,
+    "lender_id": 1,
+    "role": "LENDER",
+    "email": "lender1@hdfc.com"
+  },
+  {
+    "id": 2,
+    "company_id": null,
+    "lender_id": 2,
+    "role": "LENDER",
+    "email": "lender2@icici.com"
+  },
+  {
+    "id": 3,
+    "company_id": 1,
+    "lender_id": 1,
+    "role": "BUYER",
+    "email": "buyer@tatamotors.com"
+  },
+  {
+    "id": 4,
+    "company_id": 2,
+    "lender_id": 1,
+    "role": "BUYER",
+    "email": "buyer@relianceindustries.com"
+  },
+  {
+    "id": 5,
+    "company_id": 3,
+    "lender_id": 1,
+    "role": "BUYER",
+    "email": "buyer@marutisuzuki.com"
+  },
+  {
+    "id": 6,
+    "company_id": 4,
+    "lender_id": 1,
+    "role": "SUPPLIER",
+    "email": "supplier@boschindia.com"
+  },
+  {
+    "id": 7,
+    "company_id": 5,
+    "lender_id": 1,
+    "role": "SUPPLIER",
+    "email": "supplier@mothersonsumi.com"
+  },
+  {
+    "id": 8,
+    "company_id": 6,
+    "lender_id": 1,
+    "role": "SUPPLIER",
+    "email": "supplier@endurancetech.com"
+  },
+  {
+    "id": 9,
+    "company_id": 7,
+    "lender_id": 1,
+    "role": "SUPPLIER",
+    "email": "supplier@bharatforge.com"
+  }
+]

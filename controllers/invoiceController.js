@@ -8,12 +8,12 @@ const submitInvoice = async (req, res) => {
     try {
         const lenderId = req.lenderId;
         const { 
-            invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, 
-            expected_payment_date, goods_category, delivery_location, payment_terms 
+            invoice_number, po_id, supplier_id, buyer_id, amount, 
+            expected_payment_date, goods_category 
         } = req.body;
         const invoiceDate = new Date();
 
-        if (!invoice_number || !po_id || !grn_id || !supplier_id || !buyer_id || !amount || !expected_payment_date) {
+        if (!invoice_number || !po_id || !supplier_id || !buyer_id || !amount || !expected_payment_date) {
             return res.status(400).json({ error: 'Missing required invoice fields' });
         }
 
@@ -32,9 +32,9 @@ const submitInvoice = async (req, res) => {
 
         // 2. Draft Initial Invoice
         const invQuery = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category, delivery_location, payment_terms)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [lenderId, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date, goods_category, delivery_location, payment_terms]
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [lenderId, invoice_number, po_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date, goods_category]
         );
         const invoice = invQuery.rows[0];
 
@@ -56,7 +56,7 @@ const submitInvoice = async (req, res) => {
         }
 
         // 5. Triple Match Validation
-        const tripleCheck = await validationService.checkTripleMatch(lenderId, po_id, grn_id, amount, invoiceDate, supplier_id, buyer_id);
+        const tripleCheck = await validationService.checkTripleMatch(lenderId, po_id, amount, invoiceDate, supplier_id, buyer_id, invoice_number);
 
         totalPoints += tripleCheck.points;
         finalBreakdown.push(...tripleCheck.breakdown);
@@ -96,7 +96,7 @@ const submitInvoice = async (req, res) => {
         res.status(201).json(responseContract);
     } catch (error) {
         console.error('Error submitting invoice:', error);
-        res.status(500).json({ error: 'Failed to submit invoice' });
+        res.status(500).json({ error: 'Failed to submit invoice: ' + error.message });
     }
 };
 
@@ -296,7 +296,7 @@ const reEvaluateInvoice = async (req, res) => {
         }
 
         const tripleCheck = await validationService.checkTripleMatch(
-            lenderId, invoice.po_id, invoice.grn_id, invoice.amount, invoice.invoice_date, invoice.supplier_id, invoice.buyer_id, invoice.invoice_number
+            lenderId, invoice.po_id, invoice.amount, invoice.invoice_date, invoice.supplier_id, invoice.buyer_id, invoice.invoice_number
         );
         totalPoints += tripleCheck.points;
         finalBreakdown.push(...tripleCheck.breakdown);

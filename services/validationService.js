@@ -7,16 +7,22 @@ const generateFingerprint = (supplierId, buyerId, invoiceNumber, amount, invoice
     return crypto.createHash('sha256').update(raw).digest('hex');
 };
 
-const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDate, supplierId, buyerId, invoiceNumber) => {
+const checkTripleMatch = async (lenderId, poId, invoiceAmount, invoiceDate, supplierId, buyerId, invoiceNumber) => {
     const breakdown = [];
     let penaltyPoints = 0;
 
-    // 1. Fetch PO and GRN
+    // 1. Fetch PO, GRN and Delivery dynamically
     const poQuery = await pool.query('SELECT * FROM purchase_orders WHERE id = $1 AND lender_id = $2', [poId, lenderId]);
-    const grnQuery = await pool.query('SELECT * FROM goods_receipts WHERE id = $1 AND lender_id = $2', [grnId, lenderId]);
-
     const po = poQuery.rows[0];
+
+    const grnQuery = await pool.query('SELECT * FROM goods_receipts WHERE po_id = $1 AND lender_id = $2 ORDER BY created_at DESC LIMIT 1', [poId, lenderId]);
     const grn = grnQuery.rows[0];
+
+    let delivery = null;
+    if (grn) {
+        const deliveryQuery = await pool.query('SELECT * FROM delivery_confirmations WHERE grn_id = $1 AND lender_id = $2 ORDER BY created_at DESC LIMIT 1', [grn.id, lenderId]);
+        delivery = deliveryQuery.rows[0];
+    }
 
     // Document presence checks (Invoice -> PO -> GRN)
     if (!invoiceAmount || !invoiceDate || !supplierId || !buyerId || !invoiceNumber) {
@@ -47,6 +53,17 @@ const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDat
             detail: 'Goods Receipt Note not found'
         });
         return { valid: false, points: penaltyPoints, breakdown };
+    }
+
+    if (!delivery) {
+        penaltyPoints += 25;
+        breakdown.push({ factor: 'delivery_missing', points: 25, detail: 'Delivery confirmation missing' });
+    } else if (delivery.delivery_status === 'REJECTED') {
+        penaltyPoints += 35;
+        breakdown.push({ factor: 'delivery_rejected', points: 35, detail: 'Delivery was rejected' });
+    } else if (delivery.delivery_status === 'PARTIAL') {
+        penaltyPoints += 15;
+        breakdown.push({ factor: 'delivery_partial', points: 15, detail: 'Delivery was partially fulfilled' });
     }
 
     // 2. Amount Tolerance (±5% variance allowed)

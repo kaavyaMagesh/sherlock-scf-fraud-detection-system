@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,16 +14,51 @@ import VelocityMonitorPage from "@/pages/velocity-monitor";
 import SupplierProfilePage from "@/pages/supplier-profile";
 import DataIngestionPage from "@/pages/data-ingestion";
 import RetailFraudPage from "@/pages/retail-fraud";
+import LoginPage from "@/pages/login";
+import ERPPortalPage from "@/pages/erp-portal";
 import { AppSidebar } from "@/components/layout/sidebar";
 
 function Router() {
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("userRole");
+
+    // NOT LOGGED IN
+    if (!token) {
+      if (location !== '/login') {
+        setLocation('/login');
+      }
+      return;
+    }
+
+    // LOGGED IN logic
+    if (location === '/login') {
+      if (role === 'BUYER' || role === 'SUPPLIER') {
+        setLocation('/erp-portal');
+      } else {
+        setLocation('/');
+      }
+    } else {
+      // Access control on paths
+      if ((role === 'BUYER' || role === 'SUPPLIER') && location !== '/erp-portal') {
+        setLocation('/erp-portal');
+      }
+    }
+  }, [location, setLocation]);
+
+  const isLoginPage = location === '/login';
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <AppSidebar />
+      {!isLoginPage && <AppSidebar />}
       <main className="flex-1 overflow-hidden relative flex flex-col">
         {/* Ambient background glow effect */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] pointer-events-none rounded-full" />
         <Switch>
+          <Route path="/login" component={LoginPage} />
+          <Route path="/erp-portal" component={ERPPortalPage} />
           <Route path="/" component={Dashboard} />
           <Route path="/topology" component={NetworkTopologyPage} />
           <Route path="/verification" component={VerificationCenterPage} />
