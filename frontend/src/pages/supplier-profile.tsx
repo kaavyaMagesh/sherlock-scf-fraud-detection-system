@@ -137,6 +137,28 @@ export default function SupplierProfilePage() {
                         <span>DID: {supplier.did}</span>
                     </div>
                 </div>
+                <div className="ml-auto">
+                    {!isBlocked && (
+                        <button 
+                            onClick={async () => {
+                                if (confirm("DANGER: This will permanently revoke this company's verifiable identity. All current and future invoices will be blocked. Proceed?")) {
+                                    const res = await fetch(`http://localhost:3000/api/identity/companies/${id}/revoke`, { 
+                                        method: 'POST', 
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            "x-lender-id": localStorage.getItem("sherlock-lender-id") || "1"
+                                        }
+                                    });
+                                    if(res.ok) window.location.reload();
+                                }
+                            }}
+                            className="px-6 py-2.5 bg-destructive/10 text-destructive border border-destructive/50 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-destructive hover:text-white transition-all shadow-lg shadow-destructive/20 flex items-center gap-2"
+                        >
+                            <ShieldAlert className="w-4 h-4" />
+                            Revoke Credential
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Top Stats */}

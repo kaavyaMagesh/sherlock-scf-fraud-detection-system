@@ -3,6 +3,7 @@ const validationService = require('../services/validationService');
 const riskEngineService = require('../services/riskEngineService');
 const graphEngineService = require('../services/graphEngineService');
 const explainabilityService = require('../services/explainabilityService');
+const identityService = require('../services/identityService');
 
 const submitInvoice = async (req, res) => {
     try {
@@ -17,14 +18,27 @@ const submitInvoice = async (req, res) => {
             return res.status(400).json({ error: 'Missing required invoice fields' });
         }
 
-        // 0. Identity Gate (VC Check FIRST)
-        const compQuery = await pool.query('SELECT credential_verified, is_revoked FROM companies WHERE id = $1', [supplier_id]);
+        // 0. Identity Gate (Deep VC Verification on Every Submission)
+        const compQuery = await pool.query('SELECT verifiable_credential, credential_verified, is_revoked FROM companies WHERE id = $1', [supplier_id]);
         if (compQuery.rows.length === 0) {
             return res.status(400).json({ error: 'Supplier not found' });
         }
         const company = compQuery.rows[0];
-        if (!company.credential_verified || company.is_revoked) {
-            return res.status(403).json({ error: 'Identity Not Verified' });
+
+        // Perform Cryptographic Verification
+        let vcData = company.verifiable_credential;
+        if (typeof vcData === 'string') {
+            try {
+                vcData = JSON.parse(vcData);
+            } catch (e) {
+                vcData = null;
+            }
+        }
+
+        const isVCValid = identityService.verifyVC(vcData);
+
+        if (!company.credential_verified || company.is_revoked || !isVCValid) {
+            return res.status(403).json({ error: 'Identity Verification Failed: Invalid or Revoked Credential' });
         }
 
         // 1. Generate Fingerprint

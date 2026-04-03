@@ -39,17 +39,17 @@ export default function VerificationCenterPage() {
                     </h1>
                     <p className="text-muted-foreground mt-1 font-mono text-sm uppercase tracking-widest opacity-70">Forensic Investigation & Semantic Audit Suite</p>
                 </div>
-                
+
                 {/* View Switcher */}
                 <div className="flex bg-muted/30 p-1 rounded-xl border border-border/50 self-start md:self-auto">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('queue')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'queue' ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(54,255,143,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                         <FileStack className="w-4 h-4" />
                         Standard Ledger
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('forensics')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'forensics' ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(54,255,143,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}
                     >
@@ -108,13 +108,14 @@ export default function VerificationCenterPage() {
                 <div className="min-h-[500px] h-[75vh] animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {activeTab === 'queue' ? (
                         <InvoiceQueue
+                            raw={true}
                             onSelectInvoice={(dbId) => {
                                 setSelectedDbId(dbId);
                                 setSelectedId(dbId ? String(dbId) : null);
                             }}
                         />
                     ) : (
-                        <ForensicClassificationList 
+                        <ForensicClassificationList
                             onSelectAlert={(dbId) => {
                                 setSelectedDbId(dbId);
                                 setSelectedId(String(dbId));
