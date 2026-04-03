@@ -20,6 +20,8 @@ const FRAUD_RULES = [
     { id: 'vague_description', points: 15, description: 'Vague description (phantom signal)' },
     { id: 'templated_invoices', points: 30, description: 'Bot-like repeated descriptions' },
     { id: 'grn_invoice_mismatch', points: 25, description: 'Invoice vs GRN receipt amount misaligned' },
+    { id: 'geographical_anomaly', points: 25, description: 'Unlikely delivery location for cargo type' },
+    { id: 'payment_timeline_anomaly', points: 20, description: 'Payment terms outside industry norms' },
 ];
 
 const graphEngineService = require('./graphEngineService');
@@ -53,7 +55,9 @@ const FACTOR_WEIGHTS = {
     isolated_node_detection: 0.3,
     semantic_mismatch: 0.9,
     vague_description: 0.3,
-    templated_invoices: 0.65
+    templated_invoices: 0.65,
+    geographical_anomaly: 0.75,
+    payment_timeline_anomaly: 0.5
 };
 
 let auditSchemaInitPromise = null;
@@ -318,7 +322,11 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
 
     // Fetch related docs for consistency check
     const docsQuery = await pool.query(`
-        SELECT p.goods_category as po_desc, g.amount_received, i.goods_category as inv_desc
+        SELECT 
+            p.goods_category as po_desc, p.amount as po_amount, p.payment_terms as po_terms, p.delivery_location as po_loc,
+            g.amount_received, 
+            i.goods_category as inv_desc, i.amount as inv_amount, i.delivery_location as inv_loc, i.payment_terms as inv_terms,
+            i.invoice_date, i.expected_payment_date
         FROM invoices i
         LEFT JOIN purchase_orders p ON i.po_id = p.id
         LEFT JOIN goods_receipts g ON i.grn_id = g.id
@@ -329,16 +337,34 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     const semanticTasks = [];
 
     if (docData) {
-        // Task A: Document Consistency
+        // Task A: Document Consistency (Refined)
         semanticTasks.push(semanticService.verifyDocumentConsistency(
-            { description: docData.inv_desc },
-            { description: docData.po_desc },
-            { description: `Received ${docData.amount_received}` } // Mocking GRN desc
+            { description: docData.inv_desc, amount: docData.inv_amount },
+            { description: docData.po_desc, amount: docData.po_amount },
+            { description: `Received items`, received: docData.amount_received }
         ).then(res => { if (!res.isConsistent) applyPenalty('semantic_mismatch', res.mismatchReason); }));
 
         // Task B: Vague Description
         semanticTasks.push(semanticService.checkVagueDescriptions(docData.inv_desc)
             .then(res => { if (res.isVague) applyPenalty('vague_description', res.reason); }));
+
+        // Task D: Geography Plausibility (NEW)
+        semanticTasks.push(semanticService.checkGeographyPlausibility(
+            supplier, 
+            docData.inv_loc || docData.po_loc, 
+            docData.inv_desc
+        ).then(res => { if (!res.isPlausible) applyPenalty('geographical_anomaly', res.reason); }));
+
+        // Task E: Payment Timeline Norms (NEW)
+        semanticTasks.push(semanticService.checkPaymentTimelineNorms(
+            { 
+                payment_terms: docData.inv_terms || docData.po_terms, 
+                amount: docData.inv_amount,
+                invoice_date: docData.invoice_date,
+                expected_payment_date: docData.expected_payment_date
+            },
+            supplier
+        ).then(res => { if (!res.isNormal) applyPenalty('payment_timeline_anomaly', res.reason); }));
     }
 
     // Task C: Supplier History Similarity

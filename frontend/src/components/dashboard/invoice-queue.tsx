@@ -261,7 +261,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                                         </div>
                                     </div>
                                     {details.supplier_id != null && (
-                                        <Link href={`/supplier/${details.supplier_id}`}>
+                                        <Link href={`/supplier/${details.supplier_id}?invoice=${details.id}`}>
                                             <a className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-bold tracking-wide uppercase">
                                                 View Complete Identity
                                                 <ExternalLink className="w-3.5 h-3.5" />

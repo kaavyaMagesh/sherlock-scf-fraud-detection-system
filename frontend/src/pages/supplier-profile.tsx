@@ -3,6 +3,16 @@ import { ArrowLeft, Building2, ShieldCheck, ShieldAlert, Activity, FileText, Net
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useInvoiceDetail } from "@/hooks/use-dashboard-data";
+
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(value);
+};
 
 const API_BASE = "http://localhost:3000/api";
 const getHeaders = () => ({
@@ -14,6 +24,11 @@ export default function SupplierProfilePage() {
     const params = useParams<{ id: string }>();
     const id = params?.id || "1";
     const lenderId = localStorage.getItem("sherlock-lender-id") || "1";
+    
+    // Parse invoice context from URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const invoiceId = searchParams.get("invoice");
+    const { data: trxDetails } = useInvoiceDetail(invoiceId);
 
     const { data: companies = [] } = useQuery({
         queryKey: ["companies", lenderId],
@@ -160,6 +175,78 @@ export default function SupplierProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Transaction Specific Identity (Document Triplet) - Only shown if invoice context exists */}
+            {trxDetails && trxDetails.documentTriplet && (
+                <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
+                    <h2 className="text-sm font-bold text-primary uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Transaction Identity • Triplet Verification
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Invoice */}
+                        <div className="bg-card/40 backdrop-blur-md border border-primary/20 rounded-2xl p-6 glow-card relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-primary/10" />
+                            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-3">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Invoice</span>
+                                <span className="text-xs font-mono text-primary font-bold">{trxDetails.invoice_number}</span>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Amount</span>
+                                    <span className="text-lg font-mono font-bold text-foreground">{formatCurrency(trxDetails.amount)}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Goods Category</span>
+                                    <span className="text-xs italic text-foreground opacity-80">{trxDetails.goods_category || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* PO */}
+                        <div className="bg-card/40 backdrop-blur-md border border-primary/20 rounded-2xl p-6 glow-card relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-primary/10" />
+                            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-3">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Purchase Order</span>
+                                <span className="text-xs font-mono text-primary font-bold">PO-{trxDetails.po_id}</span>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">PO Date</span>
+                                    <span className="text-lg font-mono font-bold text-foreground">
+                                        {trxDetails.documentTriplet.po.date ? String(trxDetails.documentTriplet.po.date).split('T')[0] : 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">PO Total Amount</span>
+                                    <span className="text-lg font-mono font-bold text-foreground">{formatCurrency(trxDetails.documentTriplet.po.amount)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* GRN */}
+                        <div className="bg-card/40 backdrop-blur-md border border-primary/20 rounded-2xl p-6 glow-card relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-primary/10" />
+                            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-3">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Goods Receipt</span>
+                                <span className="text-xs font-mono text-primary font-bold">GRN-{trxDetails.grn_id}</span>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Delivery Date</span>
+                                    <span className="text-lg font-mono font-bold text-foreground">
+                                        {trxDetails.documentTriplet.grn.date ? String(trxDetails.documentTriplet.grn.date).split('T')[0] : 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Quantity Received</span>
+                                    <span className="text-lg font-mono font-bold text-foreground">{formatCurrency(trxDetails.documentTriplet.grn.amount)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
