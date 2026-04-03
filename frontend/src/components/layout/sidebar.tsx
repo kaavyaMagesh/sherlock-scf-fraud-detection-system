@@ -58,14 +58,6 @@ export function AppSidebar() {
           );
         })}
       </nav>
-
-      <div className="p-4 m-4 rounded-xl bg-background border border-border">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_5px_rgba(54,255,143,1)]"></div>
-          <span className="text-xs font-mono text-muted-foreground">SYSTEM STATUS</span>
-        </div>
-        <p className="text-sm font-semibold text-primary glow-text">ALL SYSTEMS OPTIMAL</p>
-      </div>
     </div>
   );
 }

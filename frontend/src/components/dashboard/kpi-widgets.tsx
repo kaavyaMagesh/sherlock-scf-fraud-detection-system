@@ -51,7 +51,7 @@ export function KpiWidgets() {
           <p className="text-xs text-muted-foreground mt-1">Network Integrity</p>
           <p className="text-[11px] text-muted-foreground mt-1">{trendText(kpi.activeInvoicesChange || 0)}</p>
         </div>
-        <div className="h-[140px] w-[140px] absolute -right-4 -bottom-4 opacity-80 pointer-events-none">
+        <div className="h-[120px] w-[120px] absolute right-2 bottom-2 opacity-85 pointer-events-none">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart
               cx="50%" cy="50%" innerRadius="65%" outerRadius="100%"

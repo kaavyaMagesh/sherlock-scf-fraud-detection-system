@@ -14,10 +14,6 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-4">
           <LenderSwitcher />
-          <div className="hidden md:flex px-4 py-2 bg-card border border-border/50 rounded-full items-center gap-3 shadow-lg">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(54,255,143,0.8)]"></div>
-            <span className="text-sm font-mono text-muted-foreground">Live Telemetry</span>
-          </div>
           <button className="p-2 rounded-full bg-card border border-border/50 hover:bg-muted transition-colors relative">
             <Bell className="w-5 h-5 text-foreground" />
             <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card"></span>
