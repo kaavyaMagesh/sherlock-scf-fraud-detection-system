@@ -63,18 +63,81 @@ const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDat
         breakdown.push({ factor: 'date_sequence_fail', points: 20, detail: 'Dates not sequential: PO < GRN < Invoice' });
     }
 
-    // 4. ID Consistency Check
+    // 4. ID Consistency Check (invoice ↔ PO)
     if (po.supplier_id !== Number(supplierId) || po.buyer_id !== Number(buyerId)) {
         penaltyPoints += 40;
         breakdown.push({ factor: 'entity_mismatch', points: 40, detail: 'Invoice supplier/buyer does not match PO' });
     }
 
-    if (grn.supplier_id !== Number(supplierId) || grn.buyer_id !== Number(buyerId)) {
+    // GRN rows do not store supplier/buyer; validate GRN belongs to this PO (chain integrity)
+    if (Number(grn.po_id) !== Number(po.id)) {
         penaltyPoints += 40;
-        breakdown.push({ factor: 'entity_mismatch_grn', points: 40, detail: 'Supplier/Buyer ID mismatch between Invoice and GRN' });
+        breakdown.push({
+            factor: 'entity_mismatch_grn',
+            points: 40,
+            detail: 'GRN is not linked to the same Purchase Order as this invoice'
+        });
+    }
+
+    // Invoice amount vs goods received (±5% vs GRN receipt)
+    if (grn.amount_received != null && Number(grn.amount_received) > 0) {
+        const grnAmt = Number(grn.amount_received);
+        const invAmt = Number(invoiceAmount);
+        const relDiff = Math.abs(invAmt - grnAmt) / grnAmt;
+        if (relDiff > 0.05) {
+            penaltyPoints += 25;
+            breakdown.push({
+                factor: 'grn_invoice_mismatch',
+                points: 25,
+                detail: `Invoice amount ${invAmt} outside 5% of GRN amount received ${grnAmt}`
+            });
+        }
     }
 
     return { valid: penaltyPoints === 0, points: penaltyPoints, breakdown };
+};
+
+/** Last contiguous digit run at end of invoice number (e.g. INV-80012 → 80012) */
+const extractTrailingInteger = (invoiceNumber) => {
+    const m = String(invoiceNumber).match(/(\d+)$/);
+    return m ? parseInt(m[1], 10) : null;
+};
+
+/**
+ * True if this supplier shows ≥3 consecutive numeric invoice suffixes among recent invoices (bot-like sequencing).
+ */
+const detectSequentialInvoicePattern = async (supplierId, invoiceNumber, excludeInvoiceId) => {
+    const current = extractTrailingInteger(invoiceNumber);
+    if (current === null) return false;
+
+    const res = await pool.query(
+        `
+        SELECT invoice_number
+        FROM invoices
+        WHERE supplier_id = $1 AND ($2::integer IS NULL OR id <> $2)
+        ORDER BY invoice_date DESC
+        LIMIT 14
+        `,
+        [supplierId, excludeInvoiceId]
+    );
+
+    const nums = [
+        current,
+        ...res.rows.map((r) => extractTrailingInteger(r.invoice_number)).filter((n) => n !== null)
+    ];
+    nums.sort((a, b) => a - b);
+
+    let maxRun = 1;
+    let run = 1;
+    for (let i = 1; i < nums.length; i++) {
+        if (nums[i] === nums[i - 1] + 1) {
+            run += 1;
+            maxRun = Math.max(maxRun, run);
+        } else if (nums[i] !== nums[i - 1]) {
+            run = 1;
+        }
+    }
+    return maxRun >= 3;
 };
 
 const detectDuplicates = async (lenderId, fingerprint, supplierId, buyerId, amount, invoiceDate, invoiceNumber, excludeInvoiceId = null) => {
@@ -140,5 +203,7 @@ const detectDuplicates = async (lenderId, fingerprint, supplierId, buyerId, amou
 module.exports = {
     generateFingerprint,
     checkTripleMatch,
-    detectDuplicates
+    detectDuplicates,
+    extractTrailingInteger,
+    detectSequentialInvoicePattern
 };

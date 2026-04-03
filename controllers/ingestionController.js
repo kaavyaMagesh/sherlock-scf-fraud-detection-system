@@ -16,7 +16,16 @@ const ingestPO = async (req, res) => {
             [lenderId, root_po_id, buyer_id, supplier_id, amount, po_date]
         );
 
-        res.status(201).json(result.rows[0]);
+        const poRow = result.rows[0];
+        const impacted = await pool.query(
+            'SELECT id FROM invoices WHERE lender_id = $1 AND po_id = $2',
+            [lenderId, poRow.id]
+        );
+        for (const row of impacted.rows) {
+            await recomputeInvoiceRisk(lenderId, row.id);
+        }
+
+        res.status(201).json(poRow);
     } catch (error) {
         console.error('Error ingesting PO:', error);
         res.status(500).json({ error: 'Failed to ingest Purchase Order' });

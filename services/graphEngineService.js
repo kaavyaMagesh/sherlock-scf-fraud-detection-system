@@ -309,12 +309,13 @@ const getContagionImpact = async (lenderId, entityId) => {
     }));
 
     const totalExposed = exposedEntities.reduce((sum, item) => sum + item.exposure, 0);
+    // Distinct lenders that have financed or received this entity (cross-portfolio exposure signal)
     const lenderCountQuery = `
-        SELECT COUNT(DISTINCT lender_id) AS lender_count
-        FROM trade_relationships
-        WHERE lender_id = $1 AND (supplier_id = $2 OR buyer_id = $2)
+        SELECT COUNT(DISTINCT lender_id)::int AS lender_count
+        FROM invoices
+        WHERE supplier_id = $1 OR buyer_id = $1
     `;
-    const lenderCountResult = await pool.query(lenderCountQuery, [lenderId, entityId]);
+    const lenderCountResult = await pool.query(lenderCountQuery, [entityId]);
     const lenderCount = Number(lenderCountResult.rows[0]?.lender_count || 0);
 
     const contagionRiskScore = Math.min(

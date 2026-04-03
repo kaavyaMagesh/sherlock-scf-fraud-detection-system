@@ -19,11 +19,13 @@ const FRAUD_RULES = [
     { id: 'semantic_mismatch', points: 40, description: 'Document goods descriptions mismatch' },
     { id: 'vague_description', points: 15, description: 'Vague description (phantom signal)' },
     { id: 'templated_invoices', points: 30, description: 'Bot-like repeated descriptions' },
+    { id: 'grn_invoice_mismatch', points: 25, description: 'Invoice vs GRN receipt amount misaligned' },
 ];
 
 const graphEngineService = require('./graphEngineService');
 const semanticService = require('./semanticService');
 const explainabilityService = require('./explainabilityService');
+const validationService = require('./validationService');
 
 const FACTOR_WEIGHTS = {
     exact_duplicate: 1.0,
@@ -32,6 +34,9 @@ const FACTOR_WEIGHTS = {
     amount_tolerance_fail: 0.5,
     entity_mismatch: 0.6,
     entity_mismatch_grn: 0.6,
+    grn_invoice_mismatch: 0.55,
+    date_sequence_fail: 0.45,
+    centrality_multiplier: 1.0,
     revenue_feasibility: 0.85,
     single_invoice_large: 0.5,
     monthly_volume_spike: 0.55,
@@ -130,10 +135,12 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         }
     }
 
-    // Rule 5: Off-hours Submission (11pm-5am)
-    const hour = invDateObj.getUTCHours();
+    // Rule 5: Off-hours Submission (11pm-5am) — local wall-clock unless RISK_OFF_HOURS_USE_UTC=true
+    const useUtc = process.env.RISK_OFF_HOURS_USE_UTC === 'true';
+    const hour = useUtc ? invDateObj.getUTCHours() : invDateObj.getHours();
+    const tzLabel = useUtc ? 'UTC' : 'local';
     if (hour >= 23 || hour <= 5) {
-        applyPenalty('off_hours_submission', `Invoice submitted at off-hour: ${hour}:00 UTC`);
+        applyPenalty('off_hours_submission', `Invoice submitted at off-hour: ${hour}:00 (${tzLabel})`);
     }
 
     // Rule 10: Payment Term Anomaly (> 90 days)
@@ -143,44 +150,126 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         applyPenalty('payment_term_anomaly', `Payment terms of ${Math.round(termDays)} days exceeds 90-day standard`);
     }
 
-    // Rule 6 & 4: Velocity/Bot Anomaly Proxy
-    const hourlyVolQuery = await pool.query(`
-        SELECT COUNT(*) as recent_count 
-        FROM invoices 
-        WHERE supplier_id = $1 AND invoice_date >= (CAST($2 AS TIMESTAMP) - INTERVAL '1 hour')
-    `, [supplierId, invoiceDate]);
-    const recentCount = Number(hourlyVolQuery.rows[0].recent_count);
+    // Rule 6: Velocity — 1h / 24h / 7d vs 3× historical average rate (90-day baseline)
+    const baselineQuery = await pool.query(
+        `
+        SELECT GREATEST(COUNT(*)::float / NULLIF(90.0 * 24.0, 0), 0.00001) AS avg_invoices_per_hour
+        FROM invoices
+        WHERE supplier_id = $1
+          AND invoice_date >= NOW() - INTERVAL '90 days'
+          AND id != $2
+        `,
+        [supplierId, invoiceId]
+    );
+    const avgPerHour = Number(baselineQuery.rows[0]?.avg_invoices_per_hour || 0.00001);
 
-    if (recentCount > 5) {
-        applyPenalty('sequential_invoice_nos', `Bot-pattern proxy: ${recentCount} invoices submitted in the last hour`);
-        applyPenalty('velocity_anomaly', `High velocity: ${recentCount} invoices in rolling 1-hour window`);
+    const velocityWindows = await pool.query(
+        `
+        SELECT
+            COUNT(*) FILTER (
+                WHERE invoice_date >= CAST($2 AS TIMESTAMP) - INTERVAL '1 hour'
+                  AND invoice_date <= CAST($2 AS TIMESTAMP)
+            ) AS c1h,
+            COUNT(*) FILTER (
+                WHERE invoice_date >= CAST($2 AS TIMESTAMP) - INTERVAL '24 hours'
+                  AND invoice_date <= CAST($2 AS TIMESTAMP)
+            ) AS c24h,
+            COUNT(*) FILTER (
+                WHERE invoice_date >= CAST($2 AS TIMESTAMP) - INTERVAL '7 days'
+                  AND invoice_date <= CAST($2 AS TIMESTAMP)
+            ) AS c7d
+        FROM invoices
+        WHERE supplier_id = $1 AND id != $3
+        `,
+        [supplierId, invoiceDate, invoiceId]
+    );
+    const c1h = Number(velocityWindows.rows[0]?.c1h || 0) + 1;
+    const c24h = Number(velocityWindows.rows[0]?.c24h || 0) + 1;
+    const c7d = Number(velocityWindows.rows[0]?.c7d || 0) + 1;
+
+    const thr1h = Math.max(5, avgPerHour * 3);
+    const thr24h = Math.max(30, avgPerHour * 24 * 3);
+    const thr7d = Math.max(50, avgPerHour * 24 * 7 * 3);
+
+    const velParts = [];
+    if (c1h > thr1h) velParts.push(`1h=${c1h} (thr ${thr1h.toFixed(2)})`);
+    if (c24h > thr24h) velParts.push(`24h=${c24h} (thr ${thr24h.toFixed(1)})`);
+    if (c7d > thr7d) velParts.push(`7d=${c7d} (thr ${thr7d.toFixed(0)})`);
+    if (velParts.length > 0) {
+        applyPenalty(
+            'velocity_anomaly',
+            `Submission rate exceeds 3× historical baseline: ${velParts.join('; ')} (baseline ${avgPerHour.toFixed(4)}/hr over 90d)`
+        );
+    }
+
+    const invNumRow = await pool.query('SELECT invoice_number FROM invoices WHERE id = $1', [invoiceId]);
+    const invoiceNumberStr = invNumRow.rows[0]?.invoice_number || '';
+    const seqPattern = await validationService.detectSequentialInvoicePattern(
+        supplierId,
+        invoiceNumberStr,
+        invoiceId
+    );
+    if (seqPattern) {
+        applyPenalty(
+            'sequential_invoice_nos',
+            'Consecutive numeric invoice numbering detected across recent supplier submissions (bot-like pattern)'
+        );
     }
 
     // Rule 8 & 9: Relationship Rules
-    const tradeRelQuery = await pool.query('SELECT COUNT(DISTINCT buyer_id) as buyer_count FROM trade_relationships WHERE supplier_id = $1', [supplierId]);
+    const tradeRelQuery = await pool.query(
+        'SELECT COUNT(DISTINCT buyer_id) as buyer_count FROM trade_relationships WHERE supplier_id = $1',
+        [supplierId]
+    );
     const buyerCount = Number(tradeRelQuery.rows[0].buyer_count || 0);
 
-    const rawBuyerQuery = await pool.query('SELECT COUNT(DISTINCT buyer_id) as raw_count FROM invoices WHERE supplier_id = $1', [supplierId]);
+    const rawBuyerQuery = await pool.query(
+        'SELECT COUNT(DISTINCT buyer_id) as raw_count FROM invoices WHERE supplier_id = $1',
+        [supplierId]
+    );
     const actualBuyerCount = Math.max(buyerCount, Number(rawBuyerQuery.rows[0].raw_count));
 
-    const relQuery = await pool.query('SELECT invoice_count FROM trade_relationships WHERE supplier_id = $1 AND buyer_id = $2', [supplierId, buyerId]);
-    const relCount = Number(relQuery.rows[0]?.invoice_count || 0);
-
-    if (relCount < 3 && amountNum > 500000) {
-        applyPenalty('new_relationship_value', `Suspicious Volume: New relationship (count: ${relCount}) with large invoice amount $${amountNum.toFixed(2)} (>500K)`);
+    const pairRel = await pool.query(
+        `
+        SELECT tr.first_trade_date
+        FROM trade_relationships tr
+        WHERE tr.supplier_id = $1 AND tr.buyer_id = $2 AND tr.lender_id = $3
+        `,
+        [supplierId, buyerId, lenderId]
+    );
+    let firstTrade = pairRel.rows[0]?.first_trade_date;
+    if (!firstTrade) {
+        const minInv = await pool.query(
+            'SELECT MIN(invoice_date) AS d FROM invoices WHERE supplier_id = $1 AND buyer_id = $2',
+            [supplierId, buyerId]
+        );
+        firstTrade = minInv.rows[0]?.d;
+    }
+    if (firstTrade) {
+        const relAgeDays = (invDateObj - new Date(firstTrade)) / (1000 * 60 * 60 * 24);
+        if (relAgeDays >= 0 && relAgeDays <= 60 && amountNum > 500000) {
+            applyPenalty(
+                'new_relationship_value',
+                `Relationship age ${Math.round(relAgeDays)} days with invoice amount $${amountNum.toFixed(2)} (>500K)`
+            );
+        }
     }
 
     if (actualBuyerCount === 1) {
         applyPenalty('single_buyer_supplier', 'Supplier has historically only transacted with one buyer');
     }
 
-    // Rule 11: Dilution rate high
-    const dilutionQuery = await pool.query(`
-        SELECT SUM(i.amount) as expected_total, SUM(s.actual_payment_amount) as actual_total
+    // Rule 11: Dilution — rolling 90-day window on settlements
+    const dilutionQuery = await pool.query(
+        `
+        SELECT SUM(i.amount) AS expected_total, SUM(s.actual_payment_amount) AS actual_total
         FROM invoices i
         JOIN settlements s ON i.id = s.invoice_id
         WHERE i.supplier_id = $1
-    `, [supplierId]);
+          AND s.payment_date >= NOW() - INTERVAL '90 days'
+        `,
+        [supplierId]
+    );
 
     if (dilutionQuery.rows[0] && dilutionQuery.rows[0].expected_total) {
         const expTotal = Number(dilutionQuery.rows[0].expected_total);
@@ -188,7 +277,10 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         if (expTotal > 0 && actTotal > 0) {
             const dilutionRate = (expTotal - actTotal) / expTotal;
             if (dilutionRate > 0.05) {
-                applyPenalty('dilution_rate_high', `Historical dilution rate is ${(dilutionRate * 100).toFixed(1)}% (Threshold: 5%)`);
+                applyPenalty(
+                    'dilution_rate_high',
+                    `Rolling 90d dilution rate ${(dilutionRate * 100).toFixed(1)}% (threshold 5%)`
+                );
             }
         }
     }
@@ -207,7 +299,11 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
 
     // 2. Carousel Trade Detection
     const cycles = await graphEngineService.detectCycles(lenderId);
-    const hasCycle = cycles.some(c => c.path.includes(supplierId) && c.path.includes(buyerId));
+    const pathHasEntities = (path, sid, bid) => {
+        const arr = Array.isArray(path) ? path.map((x) => Number(x)) : [];
+        return arr.includes(Number(sid)) && arr.includes(Number(bid));
+    };
+    const hasCycle = cycles.some((c) => pathHasEntities(c.path, supplierId, buyerId));
     if (hasCycle) {
         applyPenalty('carousel_trade_detected', 'Supplier/Buyer are part of a circular trade chain within 90 days');
     }
@@ -252,23 +348,25 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     // Wait for LLM results (max performance)
     await Promise.all(semanticTasks);
 
-    // 4. Centrality Multiplier (APPLIED LAST)
-    const centrality = await graphEngineService.calculateCentrality(lenderId);
-    const entityDegree = centrality.find(c => Number(c.company_id) === Number(supplierId))?.degree ?? 0;
-
-    if (entityDegree > 5 && finalBreakdown.length > 0) {
-        const multiplier = 1.3;
-        const previousScore = totalScore;
-        totalScore = Math.min(100, Math.round(totalScore * multiplier));
-        finalBreakdown.push({
-            factor: 'centrality_multiplier',
-            points: `x${multiplier}`,
-            detail: `High-centrality node (${entityDegree} partners) with existing flags. Score increased from ${previousScore} to ${totalScore}`
-        });
-    }
-
     // Layer 3 composite score (0-100): weighted across all factors.
     totalScore = computeCompositeScore(finalBreakdown);
+
+    // Centrality multiplier applied AFTER composite so it affects the persisted gate score
+    const centrality = await graphEngineService.calculateCentrality(lenderId);
+    const entityDegree = centrality.find((c) => Number(c.company_id) === Number(supplierId))?.degree ?? 0;
+    if (entityDegree > 5 && finalBreakdown.length > 0) {
+        const multiplier = 1.3;
+        const beforeCentrality = totalScore;
+        totalScore = Math.min(100, Math.round(totalScore * multiplier));
+        const delta = totalScore - beforeCentrality;
+        if (delta > 0) {
+            finalBreakdown.push({
+                factor: 'centrality_multiplier',
+                points: delta,
+                detail: `High-centrality supplier node (${entityDegree} distinct partners) with active risk flags: score ${beforeCentrality} → ${totalScore} (×${multiplier})`
+            });
+        }
+    }
 
     // Determine target status
     let status = 'APPROVED';

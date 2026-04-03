@@ -1,8 +1,5 @@
 import { KpiWidgets } from "@/components/dashboard/kpi-widgets";
-import { FraudSimulator } from "@/components/demo/fraud-simulator";
-import { LiveSubmissionForm } from "@/components/demo/live-submission-form";
-import { WhatIfSimulator } from "@/components/demo/what-if-simulator";
-import { ExpandableWrapper } from "@/components/ui/expandable-wrapper";
+import { UnifiedSimulator } from "@/components/demo/unified-simulator";
 import { LenderSwitcher } from "@/components/dashboard/lender-switcher";
 import { Bell, FlaskConical } from "lucide-react";
 
@@ -31,24 +28,14 @@ export default function Dashboard() {
       {/* KPIs */}
       <KpiWidgets />
 
-      {/* Demo & Simulation Zone */}
+      {/* Unified Simulation Studio */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <FlaskConical className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold text-foreground glow-text tracking-tight uppercase">Simulation Zone</h2>
+          <h2 className="text-xl font-bold text-foreground glow-text tracking-tight uppercase">Risk Simulation Studio</h2>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="min-h-[400px] h-full">
-            <FraudSimulator />
-          </div>
-          <div className="min-h-[400px] h-full">
-            <LiveSubmissionForm />
-          </div>
-          <div className="min-h-[400px] h-full">
-            <ExpandableWrapper>
-              <WhatIfSimulator />
-            </ExpandableWrapper>
-          </div>
+        <div className="min-h-[600px]">
+          <UnifiedSimulator />
         </div>
       </div>
     </div>
