@@ -216,8 +216,21 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                         ) : details ? (
                             <>
                                 <section>
-                                    <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3 tracking-widest">Metadata</h5>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Metadata</h5>
+                                    </div>
                                     <div className="space-y-2 bg-background/50 p-3 rounded-xl border border-border/30">
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground uppercase tracking-tighter">Last Engine Scan</span>
+                                            <span className="text-[10px] font-mono text-primary font-bold">
+                                                {audits?.[0]?.created_at ? new Date(audits[0].created_at).toLocaleTimeString() : 'PENDING'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground uppercase tracking-tighter">Decision Version</span>
+                                            <span className="text-[10px] font-mono text-foreground font-bold italic">v{audits?.[0]?.version || 1}.0-beta</span>
+                                        </div>
+                                        <div className="pt-2 mt-2 border-t border-border/30"></div>
                                         <div className="flex justify-between">
                                             <span className="text-xs text-muted-foreground">ID</span>
                                             <span className="text-xs font-mono text-foreground">{details.invoice_number}</span>

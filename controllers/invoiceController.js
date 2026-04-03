@@ -80,6 +80,27 @@ const submitInvoice = async (req, res) => {
             goods_category
         );
 
+        // --- AUTOMATED CASCADE RECALCULATION ---
+        // We trigger a background re-evaluation of other pending invoices for this supplier/buyer 
+        // to detect new network patterns (like Carousel loops) that this new invoice might have completed.
+        setImmediate(async () => {
+            try {
+                const neighbors = await pool.query(
+                    `SELECT id FROM invoices 
+                     WHERE (supplier_id = $1 OR buyer_id = $2) 
+                     AND status = 'PENDING' AND id != $3`,
+                    [supplier_id, buyer_id, invoice.id]
+                );
+                for (const row of neighbors.rows) {
+                    await riskEngineService.evaluateRisk(
+                        lenderId, row.id, supplier_id, buyer_id, 0, new Date(), new Date(), 0, []
+                    );
+                }
+            } catch (err) {
+                console.error('Background recalculation failed:', err);
+            }
+        });
+
         // Map to exact required JSON contract
         const responseContract = {
             invoiceId: invoice.id,

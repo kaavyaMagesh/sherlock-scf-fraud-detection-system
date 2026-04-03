@@ -3,20 +3,22 @@ import { SemanticComparison } from "@/components/dashboard/semantic-comparison";
 import { FraudDnaCard } from "@/components/dashboard/fraud-dna-card";
 import { InvoiceQueue } from "@/components/dashboard/invoice-queue";
 import { CounterfactualPanel } from "@/components/dashboard/counterfactual-panel";
+import { ForensicClassificationList } from "@/components/dashboard/forensic-classification-list";
 import { ExpandableWrapper } from "@/components/ui/expandable-wrapper";
 import { useInvoiceDetail } from "@/hooks/use-dashboard-data";
 import { useExplainData } from "@/hooks/use-explain-data";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, FileStack, Binary } from "lucide-react";
 
 export default function VerificationCenterPage() {
     // selectedId = display string (e.g. "INV-0042"), selectedDbId = numeric PK for API calls
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDbId, setSelectedDbId] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'queue' | 'forensics'>('queue');
 
     // Invoice detail — used for metadata (status, risk_score) and semantic comparison
     const { data: details, isLoading: isLoadingDetail } = useInvoiceDetail(selectedId);
 
-    // Layer 7 Explainability Engine — the correct source for DNA, counterfactual, and impatience signal
+    // Layer 7 Explainability Engine
     const {
         data: explainData,
         isLoading: isLoadingExplain,
@@ -35,7 +37,25 @@ export default function VerificationCenterPage() {
                         <ShieldCheck className="w-8 h-8 text-primary" />
                         Verification Center
                     </h1>
-                    <p className="text-muted-foreground mt-1 font-mono text-sm">Semantic document analysis and fraud typology matching.</p>
+                    <p className="text-muted-foreground mt-1 font-mono text-sm uppercase tracking-widest opacity-70">Forensic Investigation & Semantic Audit Suite</p>
+                </div>
+                
+                {/* View Switcher */}
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-border/50 self-start md:self-auto">
+                    <button 
+                        onClick={() => setActiveTab('queue')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'queue' ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(54,255,143,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <FileStack className="w-4 h-4" />
+                        Standard Ledger
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('forensics')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'forensics' ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(54,255,143,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <Binary className="w-4 h-4" />
+                        Forensic Alerts
+                    </button>
                 </div>
             </header>
 
@@ -43,7 +63,6 @@ export default function VerificationCenterPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="min-h-[400px] h-full">
                     <ExpandableWrapper>
-                        {/* Fraud DNA and impatience signal sourced from the Layer 7 /api/explain/:id engine */}
                         <FraudDnaCard
                             dna={explainData?.fraudDNA}
                             isLoading={isLoading}
@@ -57,7 +76,6 @@ export default function VerificationCenterPage() {
                 </div>
                 <div className="min-h-[400px] h-full">
                     <ExpandableWrapper>
-                        {/* Semantic data still sourced from invoice detail (no explain equivalent) */}
                         <SemanticComparison
                             data={details?.semanticData}
                             isLoading={isLoadingDetail}
@@ -72,7 +90,6 @@ export default function VerificationCenterPage() {
             <div className="grid grid-cols-1 gap-6">
                 <div className="min-h-[300px] h-full">
                     <ExpandableWrapper>
-                        {/* Counterfactual sourced from Layer 7 engine; status/score from invoice detail */}
                         <CounterfactualPanel
                             counterfactual={explainData?.counterfactual}
                             invoiceStatus={details?.status}
@@ -86,15 +103,24 @@ export default function VerificationCenterPage() {
                 </div>
             </div>
 
-            {/* Queue */}
-            <div className="pb-8">
-                <div className="min-h-[500px] h-[70vh]">
-                    <InvoiceQueue
-                        onSelectInvoice={(dbId) => {
-                            setSelectedDbId(dbId);           // numeric PK → useExplainData
-                            setSelectedId(dbId ? String(dbId) : null); // string → useInvoiceDetail
-                        }}
-                    />
+            {/* Tabbed List View */}
+            <div className="pb-12 h-full">
+                <div className="min-h-[500px] h-[75vh] animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {activeTab === 'queue' ? (
+                        <InvoiceQueue
+                            onSelectInvoice={(dbId) => {
+                                setSelectedDbId(dbId);
+                                setSelectedId(dbId ? String(dbId) : null);
+                            }}
+                        />
+                    ) : (
+                        <ForensicClassificationList 
+                            onSelectAlert={(dbId) => {
+                                setSelectedDbId(dbId);
+                                setSelectedId(String(dbId));
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
