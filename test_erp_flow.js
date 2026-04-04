@@ -91,7 +91,7 @@ async function testERPFlow() {
         console.log(`Status:      ${invoiceData.status}`);
         console.log(`Risk Score:  ${invoiceData.riskScore}`);
         console.log(`Breakdown:`);
-        invoiceData.breakdown.forEach(b => console.log(`  ➤ [${b.points > 0 ? '+' : ''}${b.points}] ${b.reason}`));
+        invoiceData.breakdown.forEach(b => console.log(`  ➤ [${b.points > 0 ? '+' : ''}${b.points}] ${b.detail || b.factor}`));
 
     } catch (error) {
         console.error("\n❌ TEST PIPELINE FAILED!");

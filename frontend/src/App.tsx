@@ -13,7 +13,7 @@ import AnomalyAlertsPage from "@/pages/anomaly-alerts";
 import VelocityMonitorPage from "@/pages/velocity-monitor";
 import SupplierProfilePage from "@/pages/supplier-profile";
 import DataIngestionPage from "@/pages/data-ingestion";
-import RetailFraudPage from "@/pages/retail-fraud";
+
 import LoginPage from "@/pages/login";
 import ERPPortalPage from "@/pages/erp-portal";
 import { AppSidebar } from "@/components/layout/sidebar";
