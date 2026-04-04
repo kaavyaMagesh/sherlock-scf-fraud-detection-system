@@ -19,7 +19,6 @@ export function AppSidebar() {
     { href: "/verification", label: "Verification Center", icon: ShieldCheck },
     { href: "/alerts", label: "Anomaly Alerts", icon: BellRing },
     { href: "/velocity", label: "Velocity Monitor", icon: Activity },
-    { href: "/retail-fraud", label: "Retail Fraud Map", icon: Database },
   ];
 
   return (

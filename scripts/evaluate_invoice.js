@@ -20,7 +20,7 @@ async function main() {
     try {
         // Fetch invoice details for context
         const invRes = await pool.query(`
-            SELECT i.*, sup.name as supplier_name, buy.name as buyer_name, sup.industry as supplier_industry
+            SELECT i.*, sup.name as supplier_name, buy.name as buyer_name, sup.industry_code as supplier_industry
             FROM invoices i
             JOIN companies sup ON i.supplier_id = sup.id
             JOIN companies buy ON i.buyer_id = buy.id

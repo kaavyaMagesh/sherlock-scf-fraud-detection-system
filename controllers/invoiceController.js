@@ -146,6 +146,8 @@ const getInvoiceDetails = async (req, res) => {
                    po.goods_category AS po_description, 
                    po.po_date AS po_date,
                    po.amount AS po_amount,
+                   po.delivery_location AS po_location,
+                   po.payment_terms AS po_payment_terms,
                    grn.amount_received AS grn_amount,
                    grn.grn_date AS grn_date,
                    e.fraud_dna,
@@ -233,8 +235,10 @@ const getInvoiceDetails = async (req, res) => {
                 invoiceDescription: invoice.goods_category || '',
                 poDescription: invoice.po_description || '',
                 grnDescription: grnDesc || '',
-                deliveryLocation: invoice.delivery_location || '',
-                paymentTerms: invoice.payment_terms || ''
+                invoiceLocation: invoice.delivery_location || '',
+                poLocation: invoice.po_location || '',
+                invoiceTerms: invoice.payment_terms || '',
+                poTerms: invoice.po_payment_terms || ''
             }
         });
 

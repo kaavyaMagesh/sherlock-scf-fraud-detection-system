@@ -383,7 +383,7 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
                                                                 {typeof item.points === 'number' ? `+${item.points}` : item.points}
                                                             </span>
                                                         </div>
-                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic line-clamp-2">
+                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">
                                                             {item.detail}
                                                         </p>
                                                     </div>

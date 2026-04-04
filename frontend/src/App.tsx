@@ -12,7 +12,6 @@ import AnomalyAlertsPage from "@/pages/anomaly-alerts";
 import VelocityMonitorPage from "@/pages/velocity-monitor";
 import SupplierProfilePage from "@/pages/supplier-profile";
 import DataIngestionPage from "@/pages/data-ingestion";
-import RetailFraudPage from "@/pages/retail-fraud";
 import { AppSidebar } from "@/components/layout/sidebar";
 
 function Router() {
@@ -30,7 +29,6 @@ function Router() {
           <Route path="/velocity" component={VelocityMonitorPage} />
           <Route path="/ingestion" component={DataIngestionPage} />
           <Route path="/supplier/:id" component={SupplierProfilePage} />
-          <Route path="/retail-fraud" component={RetailFraudPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

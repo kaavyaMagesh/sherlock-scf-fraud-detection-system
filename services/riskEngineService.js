@@ -318,7 +318,7 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         applyPenalty('isolated_node_detection', 'Supplier has historically only transacted with one buyer (Graph Analysis)');
     }
 
-    // --- LAYER 6: SEMANTIC LAYER RULES (PARALLEL FOR SPEED) ---
+    // --- LAYER 6: SEMANTIC LAYER RULES (SEQUENTIAL TO AVOID 429) ---
 
     // Fetch related docs for consistency check
     const docsQuery = await pool.query(`
@@ -334,29 +334,30 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     `, [invoiceId]);
 
     const docData = docsQuery.rows[0];
-    const semanticTasks = [];
 
     if (docData) {
         // Task A: Document Consistency (Refined)
-        semanticTasks.push(semanticService.verifyDocumentConsistency(
+        const resA = await semanticService.verifyDocumentConsistency(
             { description: docData.inv_desc, amount: docData.inv_amount },
             { description: docData.po_desc, amount: docData.po_amount },
             { description: `Received items`, received: docData.amount_received }
-        ).then(res => { if (!res.isConsistent) applyPenalty('semantic_mismatch', res.mismatchReason); }));
+        );
+        if (resA && !resA.isConsistent) applyPenalty('semantic_mismatch', resA.mismatchReason);
 
         // Task B: Vague Description
-        semanticTasks.push(semanticService.checkVagueDescriptions(docData.inv_desc)
-            .then(res => { if (res.isVague) applyPenalty('vague_description', res.reason); }));
+        const resB = await semanticService.checkVagueDescriptions(docData.inv_desc);
+        if (resB && resB.isVague) applyPenalty('vague_description', resB.reason);
 
         // Task D: Geography Plausibility (NEW)
-        semanticTasks.push(semanticService.checkGeographyPlausibility(
+        const resD = await semanticService.checkGeographyPlausibility(
             supplier, 
             docData.inv_loc || docData.po_loc, 
             docData.inv_desc
-        ).then(res => { if (!res.isPlausible) applyPenalty('geographical_anomaly', res.reason); }));
+        );
+        if (resD && !resD.isPlausible) applyPenalty('geographical_anomaly', resD.reason);
 
         // Task E: Payment Timeline Norms (NEW)
-        semanticTasks.push(semanticService.checkPaymentTimelineNorms(
+        const resE = await semanticService.checkPaymentTimelineNorms(
             { 
                 payment_terms: docData.inv_terms || docData.po_terms, 
                 amount: docData.inv_amount,
@@ -364,15 +365,13 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
                 expected_payment_date: docData.expected_payment_date
             },
             supplier
-        ).then(res => { if (!res.isNormal) applyPenalty('payment_timeline_anomaly', res.reason); }));
+        );
+        if (resE && !resE.isNormal) applyPenalty('payment_timeline_anomaly', resE.reason);
     }
 
     // Task C: Supplier History Similarity
-    semanticTasks.push(semanticService.analyzeSupplierSimilarity(supplierId)
-        .then(res => { if (res.isSuspicious) applyPenalty('templated_invoices', res.reason); }));
-
-    // Wait for LLM results (max performance)
-    await Promise.all(semanticTasks);
+    const resC = await semanticService.analyzeSupplierSimilarity(supplierId);
+    if (resC && resC.isSuspicious) applyPenalty('templated_invoices', resC.reason);
 
     // Layer 3 composite score (0-100): weighted across all factors.
     totalScore = computeCompositeScore(finalBreakdown);
