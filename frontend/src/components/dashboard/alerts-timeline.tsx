@@ -34,13 +34,13 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
           const data = await res.json();
           // Map DB columns to Alert interface if needed (like invoice_id -> invoiceId)
           const mapped = data.map((item: any) => ({
-             ...item,
-             invoiceId: item.invoice_id || item.invoiceId,
-             fingerprint: item.fingerprint || `INV-${item.invoice_id}`,
-             fraudType: item.fraud_type || item.fraudType || 'Systemic Anomaly',
-             severity: item.priority === 'critical' ? 'CRITICAL' : 'WARNING',
-             priority: item.priority || 'high',
-             date: item.created_at || item.date
+            ...item,
+            invoiceId: item.invoice_id || item.invoiceId,
+            fingerprint: item.fingerprint || `INV-${item.invoice_id}`,
+            fraudType: item.fraud_type || item.fraudType || 'Systemic Anomaly',
+            severity: item.priority === 'critical' ? 'CRITICAL' : 'WARNING',
+            priority: item.priority || 'high',
+            date: item.created_at || item.date
           }));
           setAlerts(mapped);
         }
@@ -67,18 +67,22 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
           // but we can append new ones. 
           if (data.alerts && data.alerts.length > 0) {
             setAlerts(prev => {
-                if (prev.length === 0) return data.alerts.reverse();
-                return prev; // keep DB alerts if already loaded
+              if (prev.length === 0) return data.alerts.reverse();
+              return prev; // keep DB alerts if already loaded
             });
           }
         } else if (data.type === 'ALERT') {
           setAlerts(prev => {
-              // Map incoming alert if needed to match DB structure
-              const mappedAlert = {
-                  ...data.alert,
-                  invoiceId: data.alert.invoice_id || data.alert.invoiceId,
-              };
-              return [mappedAlert, ...prev].slice(0, 50);
+            // Map incoming alert fields to match the Alert interface
+            const mappedAlert = {
+              ...data.alert,
+              invoiceId: data.alert.invoice_id || data.alert.invoiceId,
+              // Preserve the server-side timestamp; fall back to now only at insertion time
+              date: data.alert.created_at || data.alert.date || new Date().toISOString(),
+              fingerprint: data.alert.fingerprint || `INV-${data.alert.invoice_id || data.alert.invoiceId}`,
+              fraudType: data.alert.fraud_type || data.alert.fraudType || 'Systemic Anomaly',
+            };
+            return [mappedAlert, ...prev].slice(0, 50);
           });
         }
       } catch (e) {
@@ -133,7 +137,7 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
                 key={alert.id || idx}
                 onClick={() => onSelectAlert && alert.invoiceId && onSelectAlert(alert.invoiceId, alert.amount)}
                 className={`p-4 rounded-xl border flex flex-col gap-2 transition-all hover:translate-x-1 ${onSelectAlert ? 'cursor-pointer' : ''} ${isCritical ? 'bg-destructive/10 border-destructive/50 shadow-[0_0_10px_rgba(220,38,38,0.1)]' :
-                    'bg-warning/10 border-warning/50'
+                  'bg-warning/10 border-warning/50'
                   }`}
               >
                 <div className="flex items-start justify-between">
@@ -145,7 +149,7 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
                     </span>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded uppercase font-bold tracking-wider ${isCritical ? 'bg-destructive text-destructive-foreground' :
-                      'bg-warning text-warning-foreground'
+                    'bg-warning text-warning-foreground'
                     }`}>
                     {priorityLabel}
                   </span>
@@ -162,7 +166,9 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {new Date(alert.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {alert.date
+                      ? new Date(alert.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : 'N/A'}
                   </span>
                 </div>
               </div>
