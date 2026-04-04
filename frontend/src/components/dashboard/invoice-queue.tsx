@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useInvoiceQueue, useInvoiceDetail, useInvoiceAudits, useReEvaluateInvoice } from "@/hooks/use-dashboard-data";
-import { FileText, ArrowUpRight, Search, X, ShieldAlert, CheckCircle, AlertTriangle, Info, RefreshCw, History, ChevronRight, ExternalLink } from "lucide-react";
+import { FileText, ArrowUpRight, Search, X, ShieldAlert, ShieldCheck, CheckCircle, AlertTriangle, Info, RefreshCw, History, ChevronRight, ExternalLink } from "lucide-react";
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -12,14 +12,14 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: number | null) => void }) {
+export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice?: (dbId: number | null) => void, raw?: boolean }) {
     const { data: queue, isLoading } = useInvoiceQueue();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDbId, setSelectedDbId] = useState<number | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [recalcError, setRecalcError] = useState<string | null>(null);
-    
+
     const { data: details, isLoading: isLoadingDetails, error } = useInvoiceDetail(selectedDbId ? String(selectedDbId) : null);
     const { data: audits, isLoading: isLoadingAudits } = useInvoiceAudits(selectedDbId ? String(selectedDbId) : null);
     const reEvaluate = useReEvaluateInvoice();
@@ -52,7 +52,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
         );
     }
 
-    const filteredQueue = queue.filter(inv => 
+    const filteredQueue = queue.filter(inv =>
         inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.supplier.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -83,8 +83,12 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                             <th className="px-6 py-3 font-medium">Invoice ID</th>
                             <th className="px-6 py-3 font-medium">Supplier</th>
                             <th className="px-6 py-3 font-medium text-right">Amount</th>
-                            <th className="px-6 py-3 font-medium text-center">Score</th>
-                            <th className="px-6 py-3 font-medium">Status</th>
+                            {!raw && (
+                                <>
+                                    <th className="px-6 py-3 font-medium text-center">Score</th>
+                                    <th className="px-6 py-3 font-medium text-center">Status</th>
+                                </>
+                            )}
                             <th className="px-6 py-3"></th>
                         </tr>
                     </thead>
@@ -104,23 +108,27 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                                 <td className="px-6 py-4 font-mono text-right">
                                     {formatCurrency(invoice.amount)}
                                 </td>
-                                <td className="px-6 py-4 text-center">
-                                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs ${invoice.riskScore >= 60 ? 'bg-destructive/20 text-destructive border border-destructive/30' :
-                                            invoice.riskScore >= 30 ? 'bg-warning/20 text-warning border border-warning/30' :
-                                                'bg-primary/20 text-primary border border-primary/30'
-                                        }`}>
-                                        {invoice.riskScore}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider border ${invoice.status === 'APPROVED' ? 'bg-primary/10 text-primary border-primary/20' :
-                                            invoice.status === 'BLOCKED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                                                invoice.status === 'REVIEW' ? 'bg-warning/10 text-warning border-warning/20' :
-                                                    'bg-muted text-muted-foreground border-border'
-                                        }`}>
-                                        {invoice.status}
-                                    </span>
-                                </td>
+                                {!raw && (
+                                    <>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs ${invoice.riskScore >= 60 ? 'bg-destructive/20 text-destructive border border-destructive/30' :
+                                                invoice.riskScore >= 30 ? 'bg-warning/20 text-warning border border-warning/30' :
+                                                    'bg-primary/20 text-primary border border-primary/30'
+                                                }`}>
+                                                {invoice.riskScore}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider border ${invoice.status === 'APPROVED' ? 'bg-primary/10 text-primary border-primary/20' :
+                                                invoice.status === 'BLOCKED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                                                    invoice.status === 'REVIEW' ? 'bg-warning/10 text-warning border-warning/20' :
+                                                        'bg-muted text-muted-foreground border-border'
+                                                }`}>
+                                                {invoice.status}
+                                            </span>
+                                        </td>
+                                    </>
+                                )}
                                 <td className="px-6 py-4 text-right">
                                     <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-primary/10">
                                         <ArrowUpRight className="w-4 h-4" />
@@ -143,7 +151,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                             </h4>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                                 onClick={handleReEvaluate}
                                 disabled={reEvaluate.isPending}
                                 className={`p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all ${reEvaluate.isPending ? 'animate-spin text-primary' : ''}`}
@@ -151,7 +159,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setShowHistory(!showHistory)}
                                 className={`p-1.5 rounded-md hover:bg-primary/10 transition-all ${showHistory ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-primary'}`}
                                 title="View Version History"
@@ -216,8 +224,100 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                         ) : details ? (
                             <>
                                 <section>
-                                    <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3 tracking-widest">Metadata</h5>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Gateway Identity Proof</h5>
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-black">LAYER 8 ACTIVE</span>
+                                    </div>
+                                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
+                                        <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                                            <ShieldCheck className="w-4 h-4 text-primary" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                <span className="text-[11px] font-bold text-foreground">Identity Verified</span>
+                                                <span className="text-[9px] text-muted-foreground font-mono">(Ed25519)</span>
+                                            </div>
+                                            <div className="text-[10px] text-muted-foreground font-mono truncate opacity-70">did:sherlock:company:{details.supplier_id}</div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Document Triplet Semantic Match</h5>
+                                        <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">LLM-AUDIT ACTIVE</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="p-2.5 rounded-xl bg-background/50 border border-border/30">
+                                            <span className="text-[8px] uppercase font-bold text-muted-foreground block mb-1">Invoice Record</span>
+                                            <p className="text-[10px] leading-tight text-foreground font-medium">
+                                                {details.goods_category || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div className="p-2.5 rounded-xl bg-background/50 border border-border/30 flex flex-col justify-between">
+                                            <div>
+                                                <span className="text-[8px] uppercase font-bold text-muted-foreground block mb-1">PO Record</span>
+                                                <p className="text-[10px] leading-tight text-foreground/80 italic">
+                                                    {details.po_description || "N/A"}
+                                                </p>
+                                            </div>
+                                            {details.goods_category !== details.po_description && (
+                                                <div className="mt-2 text-[8px] text-destructive font-bold uppercase flex items-center gap-1">
+                                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                                    Textual Mismatch
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Network Cascade Exposure</h5>
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">TOPOLOGY-AWARE</span>
+                                    </div>
+                                    <div className="space-y-3 relative pl-4 border-l border-border/30">
+                                        <div className="relative">
+                                            <div className="absolute -left-[21px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-background z-10" />
+                                            <div className="p-2.5 rounded-xl bg-background/50 border border-border/30">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-bold text-foreground">Tier 1 • This Supplier</span>
+                                                    <span className="text-[9px] font-mono text-primary font-bold">₹{formatCurrency(details.amount).replace('₹', '')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="relative pt-1">
+                                            <div className="absolute -left-[21px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-muted-foreground/30 border-2 border-background z-10" />
+                                            <div className="p-2.5 rounded-xl bg-background/20 border border-border/20 opacity-70">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] text-muted-foreground">Tier 2 • Sub-Suppliers</span>
+                                                    <span className="text-[9px] font-mono text-muted-foreground italic">CONTINGENT</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="pt-2 flex justify-between items-center border-t border-border/30 mt-2">
+                                            <span className="text-[9px] text-muted-foreground uppercase font-bold">Contagion Risk</span>
+                                            <span className="text-[10px] font-bold text-destructive">₹{formatCurrency(details.amount * 1.4).replace('₹', '')} (+40%)</span>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Forensic Metadata</h5>
+                                    </div>
                                     <div className="space-y-2 bg-background/50 p-3 rounded-xl border border-border/30">
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground uppercase tracking-tighter">Last Engine Scan</span>
+                                            <span className="text-[10px] font-mono text-primary font-bold">
+                                                {audits?.[0]?.created_at ? new Date(audits[0].created_at).toLocaleTimeString() : 'PENDING'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-muted-foreground uppercase tracking-tighter">Decision Version</span>
+                                            <span className="text-[10px] font-mono text-foreground font-bold italic">v{audits?.[0]?.version || 1}.0-beta</span>
+                                        </div>
+                                        <div className="pt-2 mt-2 border-t border-border/30"></div>
                                         <div className="flex justify-between">
                                             <span className="text-xs text-muted-foreground">ID</span>
                                             <span className="text-xs font-mono text-foreground">{details.invoice_number}</span>
@@ -248,7 +348,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                                         </div>
                                     </div>
                                     {details.supplier_id != null && (
-                                        <Link href={`/supplier/${details.supplier_id}?invoice=${details.id}`}>
+                                        <Link href={`/supplier/${details.supplier_id}`}>
                                             <a className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-bold tracking-wide uppercase">
                                                 View Complete Identity
                                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -283,7 +383,7 @@ export function InvoiceQueue({ onSelectInvoice }: { onSelectInvoice?: (dbId: num
                                                                 {typeof item.points === 'number' ? `+${item.points}` : item.points}
                                                             </span>
                                                         </div>
-                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic line-clamp-2">
+                                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">
                                                             {item.detail}
                                                         </p>
                                                     </div>

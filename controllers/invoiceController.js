@@ -3,6 +3,7 @@ const validationService = require('../services/validationService');
 const riskEngineService = require('../services/riskEngineService');
 const graphEngineService = require('../services/graphEngineService');
 const explainabilityService = require('../services/explainabilityService');
+const identityService = require('../services/identityService');
 
 const submitInvoice = async (req, res) => {
     try {
@@ -17,14 +18,27 @@ const submitInvoice = async (req, res) => {
             return res.status(400).json({ error: 'Missing required invoice fields' });
         }
 
-        // 0. Identity Gate (VC Check FIRST)
-        const compQuery = await pool.query('SELECT credential_verified, is_revoked FROM companies WHERE id = $1', [supplier_id]);
+        // 0. Identity Gate (Deep VC Verification on Every Submission)
+        const compQuery = await pool.query('SELECT verifiable_credential, credential_verified, is_revoked FROM companies WHERE id = $1', [supplier_id]);
         if (compQuery.rows.length === 0) {
             return res.status(400).json({ error: 'Supplier not found' });
         }
         const company = compQuery.rows[0];
-        if (!company.credential_verified || company.is_revoked) {
-            return res.status(403).json({ error: 'Identity Not Verified' });
+
+        // Perform Cryptographic Verification
+        let vcData = company.verifiable_credential;
+        if (typeof vcData === 'string') {
+            try {
+                vcData = JSON.parse(vcData);
+            } catch (e) {
+                vcData = null;
+            }
+        }
+
+        const isVCValid = identityService.verifyVC(vcData);
+
+        if (!company.credential_verified || company.is_revoked || !isVCValid) {
+            return res.status(403).json({ error: 'Identity Verification Failed: Invalid or Revoked Credential' });
         }
 
         // 1. Generate Fingerprint
@@ -83,6 +97,27 @@ const submitInvoice = async (req, res) => {
             goods_category
         );
 
+        // --- AUTOMATED CASCADE RECALCULATION ---
+        // We trigger a background re-evaluation of other pending invoices for this supplier/buyer 
+        // to detect new network patterns (like Carousel loops) that this new invoice might have completed.
+        setImmediate(async () => {
+            try {
+                const neighbors = await pool.query(
+                    `SELECT id FROM invoices 
+                     WHERE (supplier_id = $1 OR buyer_id = $2) 
+                     AND status = 'PENDING' AND id != $3`,
+                    [supplier_id, buyer_id, invoice.id]
+                );
+                for (const row of neighbors.rows) {
+                    await riskEngineService.evaluateRisk(
+                        lenderId, row.id, supplier_id, buyer_id, 0, new Date(), new Date(), 0, []
+                    );
+                }
+            } catch (err) {
+                console.error('Background recalculation failed:', err);
+            }
+        });
+
         // Map to exact required JSON contract
         const responseContract = {
             invoiceId: invoice.id,
@@ -111,6 +146,8 @@ const getInvoiceDetails = async (req, res) => {
                    po.goods_category AS po_description, 
                    po.po_date AS po_date,
                    po.amount AS po_amount,
+                   po.delivery_location AS po_location,
+                   po.payment_terms AS po_payment_terms,
                    grn.amount_received AS grn_amount,
                    grn.grn_date AS grn_date,
                    e.fraud_dna,
@@ -198,8 +235,10 @@ const getInvoiceDetails = async (req, res) => {
                 invoiceDescription: invoice.goods_category || '',
                 poDescription: invoice.po_description || '',
                 grnDescription: grnDesc || '',
-                deliveryLocation: invoice.delivery_location || '',
-                paymentTerms: invoice.payment_terms || ''
+                invoiceLocation: invoice.delivery_location || '',
+                poLocation: invoice.po_location || '',
+                invoiceTerms: invoice.payment_terms || '',
+                poTerms: invoice.po_payment_terms || ''
             }
         });
 

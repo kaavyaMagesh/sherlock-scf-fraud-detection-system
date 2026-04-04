@@ -45,11 +45,6 @@ export default function AnomalyAlertsPage() {
                             defaultAmount={selectedAmount} 
                         />
                     </div>
-                    <div className="min-h-[380px] h-full">
-                        <ExpandableWrapper>
-                            <CounterfactualPanel />
-                        </ExpandableWrapper>
-                    </div>
                 </div>
             </div>
         </div>

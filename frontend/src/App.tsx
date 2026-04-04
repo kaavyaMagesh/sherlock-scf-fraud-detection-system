@@ -66,7 +66,6 @@ function Router() {
           <Route path="/velocity" component={VelocityMonitorPage} />
           <Route path="/ingestion" component={DataIngestionPage} />
           <Route path="/supplier/:id" component={SupplierProfilePage} />
-          <Route path="/retail-fraud" component={RetailFraudPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

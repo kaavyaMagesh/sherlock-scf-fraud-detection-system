@@ -5,8 +5,10 @@ interface SemanticComparisonProps {
         invoiceDescription: string;
         poDescription: string;
         grnDescription: string;
-        deliveryLocation?: string;
-        paymentTerms?: string;
+        invoiceLocation?: string;
+        poLocation?: string;
+        invoiceTerms?: string;
+        poTerms?: string;
     } | null;
     isLoading?: boolean;
     breakdown?: any[];
@@ -127,8 +129,13 @@ export function SemanticComparison({ data, isLoading, breakdown, hasSelection = 
                                 <Globe className={`w-3.5 h-3.5 ${geoMismatch ? "text-warning animate-pulse" : ""}`} /> 
                                 <span className={geoMismatch ? "text-warning" : ""}>Geographical Plausibility</span>
                             </div>
-                            <div className="text-[11px] text-foreground/90 font-mono leading-relaxed mt-1 flex-1">
-                                {data?.deliveryLocation || "— No location specified —"}
+                            <div className="text-[11px] text-foreground/90 font-mono leading-relaxed mt-1 flex-1 space-y-1">
+                                <div><span className="text-[9px] text-muted-foreground uppercase mr-1">R:</span> {data?.poLocation || "— No location on PO —"}</div>
+                                {data?.invoiceLocation && data.invoiceLocation !== data.poLocation && (
+                                    <div className="pt-1 border-t border-border/10">
+                                        <span className="text-[9px] text-muted-foreground uppercase mr-1">S:</span> {data.invoiceLocation}
+                                    </div>
+                                )}
                             </div>
                             {geoMismatch && (
                                 <div className="mt-3 text-[10px] text-warning bg-warning/5 p-2 rounded-lg border border-warning/10 flex items-start gap-2">
@@ -145,8 +152,13 @@ export function SemanticComparison({ data, isLoading, breakdown, hasSelection = 
                                 <Clock className={`w-3.5 h-3.5 ${timelineMismatch ? "text-warning animate-pulse" : ""}`} /> 
                                 <span className={timelineMismatch ? "text-warning" : ""}>Payment Timeline Analysis</span>
                             </div>
-                            <div className="text-[11px] text-foreground/90 font-mono leading-relaxed mt-1 flex-1">
-                                {data?.paymentTerms || "— Default or unspecified terms —"}
+                            <div className="text-[11px] text-foreground/90 font-mono leading-relaxed mt-1 flex-1 space-y-1">
+                                <div><span className="text-[9px] text-muted-foreground uppercase mr-1">R:</span> {data?.poTerms || "— Default terms —"}</div>
+                                {data?.invoiceTerms && data.invoiceTerms !== data.poTerms && (
+                                    <div className="pt-1 border-t border-border/10">
+                                        <span className="text-[9px] text-muted-foreground uppercase mr-1">S:</span> {data.invoiceTerms}
+                                    </div>
+                                )}
                             </div>
                             {timelineMismatch && (
                                 <div className="mt-3 text-[10px] text-warning bg-warning/5 p-2 rounded-lg border border-warning/10 flex items-start gap-2">
