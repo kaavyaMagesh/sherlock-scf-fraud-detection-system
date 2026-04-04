@@ -18,7 +18,7 @@ export function AppSidebar() {
 
   const allNavItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/ingestion", label: "Data Ingestion", icon: Upload },
+
     { href: "/topology", label: "Network Topology", icon: Network },
     { href: "/verification", label: "Verification Center", icon: ShieldCheck },
     { href: "/alerts", label: "Anomaly Alerts", icon: BellRing },

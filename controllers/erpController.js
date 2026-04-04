@@ -23,14 +23,14 @@ exports.getPurchaseOrders = async (req, res) => {
 exports.createPurchaseOrder = async (req, res) => {
     try {
         const { company_id, lender_id } = req.user;
-        const { supplier_id, amount, quantity, goods_category } = req.body;
+        const { supplier_id, amount, quantity, goods_category, delivery_location, payment_terms } = req.body;
 
         const query = `
-            INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, quantity, goods_category, po_date)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            INSERT INTO purchase_orders (lender_id, buyer_id, supplier_id, amount, quantity, goods_category, delivery_location, payment_terms, po_date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
             RETURNING *
         `;
-        const result = await pool.query(query, [lender_id, company_id, supplier_id, amount, quantity, goods_category]);
+        const result = await pool.query(query, [lender_id, company_id, supplier_id, amount, quantity, goods_category, delivery_location, payment_terms]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error(err);

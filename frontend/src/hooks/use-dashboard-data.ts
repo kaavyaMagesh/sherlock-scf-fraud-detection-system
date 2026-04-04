@@ -8,7 +8,7 @@ const getHeaders = () => ({
 });
 
 export function useKPI() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["kpi", lenderId],
     queryFn: async () => {
@@ -21,7 +21,7 @@ export function useKPI() {
 }
 
 export function useDiscrepancies() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["discrepancies", lenderId],
     queryFn: async () => {
@@ -34,7 +34,7 @@ export function useDiscrepancies() {
 }
 
 export function useAlerts() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["alerts", lenderId],
     queryFn: async () => {
@@ -54,7 +54,7 @@ export function useAlerts() {
 }
 
 export function useVelocity() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["velocity", lenderId],
     queryFn: async () => {
@@ -66,7 +66,7 @@ export function useVelocity() {
 }
 
 export function useNetwork() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["network-topology", lenderId],
     queryFn: async () => {
@@ -126,7 +126,7 @@ export function useNetwork() {
 }
 
 export function useCascadeExposure(rootPoId: string | number | null) {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["cascade-exposure", lenderId, rootPoId],
     queryFn: async () => {
@@ -141,7 +141,7 @@ export function useCascadeExposure(rootPoId: string | number | null) {
 }
 
 export function useContagionImpact(entityId: string | number | null) {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["contagion-impact", lenderId, entityId],
     queryFn: async () => {
@@ -156,7 +156,7 @@ export function useContagionImpact(entityId: string | number | null) {
 }
 
 export function useEntityAlerts(entityId: string | number | null) {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ['alerts-entity', lenderId, entityId],
     queryFn: async () => {
@@ -170,7 +170,7 @@ export function useEntityAlerts(entityId: string | number | null) {
 }
 
 export function useCompanies() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   const { data, isLoading: isLoadingCompanies, error: companiesError, refetch: refetchCompanies } = useQuery({
     queryKey: ["companies", lenderId],
     queryFn: async () => {
@@ -185,7 +185,7 @@ export function useCompanies() {
 
 export function useCreateCompany() {
   const queryClient = useQueryClient();
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useMutation({
     mutationFn: async (company: { name: string; tier?: number }) => {
       const res = await fetch(`${API_BASE}/identity/companies`, {
@@ -203,7 +203,7 @@ export function useCreateCompany() {
 }
 
 export function useInvoiceDetail(id: string | null) {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["invoice-detail", id, lenderId],
     queryFn: async () => {
@@ -226,7 +226,7 @@ export function useInvoiceDetail(id: string | null) {
 }
 
 export function useInvoiceQueue() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["invoice-queue", lenderId],
     queryFn: async () => {
@@ -249,7 +249,7 @@ export function useInvoiceQueue() {
 }
 
 export function useInvoiceAudits(id: string | null) {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["invoice-audits", id, lenderId],
     queryFn: async () => {
@@ -264,7 +264,7 @@ export function useInvoiceAudits(id: string | null) {
 
 export function useReEvaluateInvoice() {
   const queryClient = useQueryClient();
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`${API_BASE}/invoices/${id}/re-evaluate`, {
@@ -289,7 +289,7 @@ export function useReEvaluateInvoice() {
 }
 
 export function usePos() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["pos", lenderId],
     queryFn: async () => {
@@ -302,7 +302,7 @@ export function usePos() {
 }
 
 export function useGrns() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["grns", lenderId],
     queryFn: async () => {
@@ -315,7 +315,7 @@ export function useGrns() {
 
 export function useSubmitInvoice() {
   const queryClient = useQueryClient();
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useMutation({
     mutationFn: async (invoice: any) => {
       const res = await fetch(`${API_BASE}/invoices`, {
@@ -338,7 +338,7 @@ export function useSubmitInvoice() {
 }
 
 export function useScenarios() {
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useQuery({
     queryKey: ["scenarios", lenderId],
     queryFn: async () => {
@@ -351,7 +351,7 @@ export function useScenarios() {
 
 export function useManualOverrideInvoice() {
   const queryClient = useQueryClient();
-  const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+  const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {

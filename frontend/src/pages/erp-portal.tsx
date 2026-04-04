@@ -102,7 +102,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
     const [showDisputeModal, setShowDisputeModal] = useState<string | null>(null);
 
     // Form states
-    const [poForm, setPoForm] = useState({ supplier_id: '', amount: '', quantity: '', goods_category: '', po_date: new Date().toISOString().split('T')[0], parent_po_id: '' });
+    const [poForm, setPoForm] = useState({ supplier_id: '', amount: '', quantity: '', goods_category: '', delivery_location: '', payment_terms: '', po_date: new Date().toISOString().split('T')[0], parent_po_id: '' });
     const [grnForm, setGrnForm] = useState({ po_id: '', amount_received: '', quantity: '', goods_category: '', receipt_date: new Date().toISOString().split('T')[0] });
     const [delForm, setDelForm] = useState({ grn_id: '', confirmed_by: '', delivery_status: 'DELIVERED', notes: '', delivery_date: new Date().toISOString().split('T')[0] });
     const [disputeForm, setDisputeForm] = useState({ dispute_reason: 'GOODS_RETURNED', dispute_notes: '' });
@@ -162,6 +162,14 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
                                     <div className="space-y-1">
                                         <label className="text-muted-foreground text-xs uppercase tracking-wider">Goods Category</label>
                                         <input required type="text" placeholder="e.g. Auto Parts" value={poForm.goods_category} onChange={e => setPoForm({ ...poForm, goods_category: e.target.value })} className="w-full bg-background border border-border/50 rounded p-2 text-foreground focus:ring-primary focus:border-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                         <label className="text-muted-foreground text-xs uppercase tracking-wider">Delivery Location</label>
+                                         <input required type="text" placeholder="e.g. Pune Factory" value={poForm.delivery_location} onChange={e => setPoForm({...poForm, delivery_location: e.target.value})} className="w-full bg-background border border-border/50 rounded p-2 text-foreground focus:ring-primary focus:border-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                         <label className="text-muted-foreground text-xs uppercase tracking-wider">Payment Terms</label>
+                                         <input required type="text" placeholder="e.g. Net 30" value={poForm.payment_terms} onChange={e => setPoForm({...poForm, payment_terms: e.target.value})} className="w-full bg-background border border-border/50 rounded p-2 text-foreground focus:ring-primary focus:border-primary" />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-muted-foreground text-xs uppercase tracking-wider">PO Date</label>
@@ -356,14 +364,8 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
 
     const { data: pos, isLoading: loadingPos } = useQuery({ queryKey: ["supplier-pos"], queryFn: () => fetchApi('my-purchase-orders') });
 
-    const [invForm, setInvForm] = useState({
-        po_id: '',
-        invoice_number: '',
-        amount: '',
-        goods_category: '',
-        invoice_date: new Date().toISOString().split('T')[0]
-    });
-    const [invResult, setInvResult] = useState<{ status: string, riskScore: number } | null>(null);
+    const [invForm, setInvForm] = useState({ po_id: '', invoice_number: '', amount: '', goods_category: '', delivery_location: '', payment_terms: '', invoice_date: new Date().toISOString().split('T')[0] });
+    const [invResult, setInvResult] = useState<{status: string, riskScore: number}|null>(null);
     const [invError, setInvError] = useState('');
 
     const mutation = useMutation({
@@ -397,7 +399,9 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
             amount: parseFloat(invForm.amount),
             invoice_date: invForm.invoice_date,
             expected_payment_date: new Date().toISOString(),
-            goods_category: invForm.goods_category || selectedPo.goods_category || "Unclassified"
+            goods_category: invForm.goods_category || selectedPo.goods_category || "Unclassified",
+            delivery_location: invForm.delivery_location,
+            payment_terms: invForm.payment_terms
         };
         mutation.mutate(payload);
     };
@@ -457,8 +461,16 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
                                     <input required type="number" value={invForm.amount} onChange={e => setInvForm({ ...invForm, amount: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs uppercase tracking-wider text-muted-foreground">Goods Description (Optional)</label>
-                                    <input type="text" placeholder="Overrides PO Category" value={invForm.goods_category} onChange={e => setInvForm({ ...invForm, goods_category: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none" />
+                                    <label className="text-xs uppercase tracking-wider text-muted-foreground">Goods Description</label>
+                                    <input required type="text" placeholder="e.g. Industrial Steel" value={invForm.goods_category} onChange={e => setInvForm({ ...invForm, goods_category: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase tracking-wider text-muted-foreground">Delivery Location</label>
+                                    <input required type="text" placeholder="e.g. Mumbai HQ" value={invForm.delivery_location} onChange={e => setInvForm({ ...invForm, delivery_location: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase tracking-wider text-muted-foreground">Payment Terms</label>
+                                    <input required type="text" placeholder="e.g. Net 30" value={invForm.payment_terms} onChange={e => setInvForm({ ...invForm, payment_terms: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs uppercase tracking-wider text-muted-foreground">Invoice Date</label>

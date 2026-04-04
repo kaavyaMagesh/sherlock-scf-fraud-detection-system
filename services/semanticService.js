@@ -28,7 +28,12 @@ const verifyDocumentConsistency = async (invoice, po, grn) => {
     try {
         const trimmed = String(response).trim();
         const jsonBlock = trimmed.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
+        const parsed = JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
+        return {
+            isConsistent: parsed.isConsistent,
+            mismatchReason: parsed.mismatchReason || parsed.reason,
+            riskPoints: parsed.riskPoints || parsed.points || 0
+        };
     } catch (e) {
         return { isConsistent: true, mismatchReason: 'LLM response not valid JSON', riskPoints: 0 };
     }

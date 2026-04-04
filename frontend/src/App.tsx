@@ -12,7 +12,7 @@ import VerificationCenterPage from "@/pages/verification-center";
 import AnomalyAlertsPage from "@/pages/anomaly-alerts";
 import VelocityMonitorPage from "@/pages/velocity-monitor";
 import SupplierProfilePage from "@/pages/supplier-profile";
-import DataIngestionPage from "@/pages/data-ingestion";
+
 
 import LoginPage from "@/pages/login";
 import ERPPortalPage from "@/pages/erp-portal";
@@ -64,7 +64,7 @@ function Router() {
           <Route path="/verification" component={VerificationCenterPage} />
           <Route path="/alerts" component={AnomalyAlertsPage} />
           <Route path="/velocity" component={VelocityMonitorPage} />
-          <Route path="/ingestion" component={DataIngestionPage} />
+          
           <Route path="/supplier/:id" component={SupplierProfilePage} />
           <Route component={NotFound} />
         </Switch>

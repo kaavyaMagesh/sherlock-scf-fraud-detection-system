@@ -10,7 +10,7 @@ const submitInvoice = async (req, res) => {
         const lenderId = req.lenderId;
         const { 
             invoice_number, po_id, supplier_id, buyer_id, amount, 
-            expected_payment_date, goods_category 
+            expected_payment_date, goods_category, delivery_location, payment_terms
         } = req.body;
         const invoiceDate = new Date();
 
@@ -46,9 +46,9 @@ const submitInvoice = async (req, res) => {
 
         // 2. Draft Initial Invoice
         const invQuery = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [lenderId, invoice_number, po_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date, goods_category]
+            `INSERT INTO invoices (lender_id, invoice_number, po_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category, delivery_location, payment_terms)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+            [lenderId, invoice_number, po_id, supplier_id, buyer_id, amount, invoiceDate, expected_payment_date, goods_category, delivery_location, payment_terms]
         );
         const invoice = invQuery.rows[0];
 
@@ -228,7 +228,7 @@ const getInvoiceDetails = async (req, res) => {
             impatience_signal: impatienceSignal,
             documentTriplet: {
                 invoice: { id: invoice.invoice_number, amount: invoice.amount, date: invoice.invoice_date, category: invoice.goods_category },
-                po: { id: invoice.po_id, amount: invoice.po_amount, date: invoice.po_date, category: invoice.po_description },
+                po: { id: invoice.po_id, amount: invoice.po_amount, date: invoice.po_date, category: invoice.po_description, location: invoice.po_location, payment_terms: invoice.po_payment_terms },
                 grn: { id: invoice.grn_id, amount: invoice.grn_amount, date: invoice.grn_date }
             },
             semanticData: {

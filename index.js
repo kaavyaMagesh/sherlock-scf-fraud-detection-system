@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const ingestionRoutes = require('./routes/ingestionRoutes');
+
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const scoreRoutes = require('./routes/scoreRoutes');
@@ -24,7 +24,7 @@ app.use('/api/retail', retailRoutes);
 // Main APIs (Authenticated via x-lender-id)
 app.use('/api/auth', authRoutes);
 app.use('/api/erp', erpRoutes);
-app.use('/api', ingestionRoutes);
+
 app.use('/api', dashboardRoutes); // /alerts and /lender/:id/portfolio
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/score', scoreRoutes);

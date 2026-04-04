@@ -4,6 +4,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useInvoiceDetail } from "@/hooks/use-dashboard-data";
+import { ShieldAlert as ShieldAlertIcon, MapPin, CreditCard, Clock } from "lucide-react";
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -23,7 +24,7 @@ const getHeaders = () => ({
 export default function SupplierProfilePage() {
     const params = useParams<{ id: string }>();
     const id = params?.id || "1";
-    const lenderId = localStorage.getItem("sherlock-lender-id") || "1";
+    const lenderId = localStorage.getItem("sherlock-lender-id") || "4";
     
     // Parse invoice context from URL
     const searchParams = new URLSearchParams(window.location.search);
@@ -222,6 +223,20 @@ export default function SupplierProfilePage() {
                                     <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Goods Category</span>
                                     <span className="text-xs italic text-foreground opacity-80">{trxDetails.goods_category || 'N/A'}</span>
                                 </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/30">
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] text-muted-foreground uppercase font-bold flex items-center gap-1">
+                                            <MapPin className="w-2 h-2" /> Location
+                                        </span>
+                                        <span className="text-[10px] truncate">{trxDetails.delivery_location || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] text-muted-foreground uppercase font-bold flex items-center gap-1">
+                                            <CreditCard className="w-2 h-2" /> Terms
+                                        </span>
+                                        <span className="text-[10px] truncate">{trxDetails.payment_terms || 'N/A'}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -242,6 +257,20 @@ export default function SupplierProfilePage() {
                                 <div className="flex flex-col">
                                     <span className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">PO Total Amount</span>
                                     <span className="text-lg font-mono font-bold text-foreground">{formatCurrency(trxDetails.documentTriplet.po.amount)}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/30">
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] text-muted-foreground uppercase font-bold flex items-center gap-1">
+                                            <MapPin className="w-2 h-2" /> Destination
+                                        </span>
+                                        <span className="text-[10px] truncate">{trxDetails.documentTriplet.po.location || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] text-muted-foreground uppercase font-bold flex items-center gap-1">
+                                            <CreditCard className="w-2 h-2" /> Agreement
+                                        </span>
+                                        <span className="text-[10px] truncate">{trxDetails.documentTriplet.po.payment_terms || 'N/A'}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -320,9 +349,7 @@ export default function SupplierProfilePage() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-4 text-xs text-muted-foreground text-center px-4">
-                                    Live ego-network derived from `trade_relationships`.
-                                </div>
+
                             </>
                         )}
                     </div>
