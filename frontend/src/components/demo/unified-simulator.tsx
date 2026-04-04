@@ -439,74 +439,7 @@ export function UnifiedSimulator() {
                     animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
                 }
             `}</style>
-            {/* FINAL IMPACT SPLASH SCREEN (WOW FACTOR) */}
-            {currentStep === 6 && (
-                <div className="mt-8 animate-in zoom-in-95 fade-in duration-500">
-                    <div className="bg-primary/5 border border-primary/20 rounded-3xl p-8 relative overflow-hidden text-center group hover:border-primary/40 transition-all">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-primary/10 transition-all" />
-                        <ShieldCheck className="w-16 h-16 text-primary mx-auto mb-4 glow-text animate-pulse" />
-                        <h3 className="text-4xl font-black text-foreground tracking-tighter mb-2 italic uppercase">Forensic Protection Achieved</h3>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.3em] mb-1">Capital Preservation</span>
-                            <span className="text-6xl font-black text-primary glow-text font-mono">₹{(finalScore * 140000).toLocaleString('en-IN')}</span>
-                        </div>
-                        <p className="text-muted-foreground text-sm max-w-md mx-auto mt-6 leading-relaxed">
-                            Sherlock blocked this high-risk transaction in <span className="text-foreground font-bold">142ms</span>, preventing a potential contagion wave across {mode === 'fraudulent' ? selectedFrauds.size : 0} detected anomalies.
-                        </p>
 
-                        {/* WHAT-IF PORTFOLIO DELTA (MINI CHART) */}
-                        <div className="mt-8 pt-8 border-t border-border/30 grid grid-cols-2 gap-8 items-center text-left">
-                            <div className="space-y-4">
-                                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Activity className="w-3 h-3 text-primary" />
-                                    What-If Portfolio Delta
-                                </h4>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between text-[10px] mb-1">
-                                            <span className="text-muted-foreground">Original Portfolio Risk</span>
-                                            <span className="text-primary font-bold">12.4%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                            <div className="h-full bg-primary w-[12.4%] shadow-sm" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-[10px] mb-1">
-                                            <span className="text-muted-foreground">If Disbursed (New Risk)</span>
-                                            <span className="text-destructive font-bold">{(12.4 + finalScore / 10).toFixed(1)}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                            <div className="h-full bg-destructive w-[24%]" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-background/40 rounded-2xl p-4 border border-border/30">
-                                <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                                    "Approving this invoice would create a <span className="text-destructive font-bold">{(finalScore / 10).toFixed(1)}% surge</span> in non-performing asset risk. Sherlock's auto-block preserved <span className="text-primary font-bold">₹{(finalScore * 140000 / 10000000).toFixed(2)} Cr</span> in healthy capital."
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* AUDITOR OVERRIDE SECTION */}
-                        <div className="mt-8 pt-6 border-t border-border/20">
-                            <button 
-                                onClick={() => {
-                                    const reason = prompt("Enter mandatory forensic reason for override:");
-                                    if(reason) {
-                                        setResult('approved');
-                                        setFinalScore(5);
-                                    }
-                                }}
-                                className="px-6 py-2 rounded-xl border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 transition-all"
-                            >
-                                Trigger Auditor Override (Log Reason)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

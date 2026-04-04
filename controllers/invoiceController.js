@@ -54,7 +54,7 @@ const submitInvoice = async (req, res) => {
 
         // 3. Store Fingerprint
         await pool.query(
-            'INSERT INTO invoice_fingerprints (invoice_id, lender_id, fingerprint) VALUES ($1, $2, $3)',
+            'INSERT INTO invoice_fingerprints (invoice_id, lender_id, fingerprint) VALUES ($1, $2, $3) ON CONFLICT (fingerprint) DO NOTHING',
             [invoice.id, lenderId, fingerprint]
         );
 
