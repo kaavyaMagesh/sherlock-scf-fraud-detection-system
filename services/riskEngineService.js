@@ -326,7 +326,7 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     const docsQuery = await pool.query(`
         SELECT 
             p.goods_category as po_desc, p.amount as po_amount, p.payment_terms as po_terms, p.delivery_location as po_loc,
-            g.amount_received, 
+            g.amount_received, g.goods_category as grn_desc, 
             i.goods_category as inv_desc, i.amount as inv_amount, i.delivery_location as inv_loc, i.payment_terms as inv_terms,
             i.invoice_date, i.expected_payment_date
         FROM invoices i
@@ -342,7 +342,7 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         const resA = await semanticService.verifyDocumentConsistency(
             { description: docData.inv_desc, amount: docData.inv_amount },
             { description: docData.po_desc, amount: docData.po_amount },
-            { description: `Received items`, received: docData.amount_received }
+            { description: docData.grn_desc || 'Received items', received: docData.amount_received }
         );
         if (resA && resA.isConsistent === false) applyPenalty('semantic_mismatch', resA.mismatchReason);
 

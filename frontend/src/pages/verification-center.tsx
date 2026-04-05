@@ -91,7 +91,6 @@ export default function VerificationCenterPage() {
             <div className="pb-12 h-full">
                 <div className="min-h-[500px] h-[75vh] animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <InvoiceQueue
-                            raw={true}
                             onSelectInvoice={(dbId) => {
                                 setSelectedDbId(dbId);
                                 setSelectedId(dbId ? String(dbId) : null);
