@@ -38,7 +38,7 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
             ...item,
             invoiceId: item.invoice_id || item.invoiceId,
             fingerprint: item.fingerprint || `INV-${item.invoice_id}`,
-            fraudType: item.fraud_type || item.fraudType || 'Systemic Anomaly',
+            fraudType: (item.fraud_rule === 'dilution_rate_high') ? 'DILUTION_FRAUD' : (item.fraud_rule || item.fraudType || 'Systemic Anomaly'),
             severity: item.priority === 'critical' ? 'CRITICAL' : 'WARNING',
             priority: item.priority || 'high',
             date: item.created_at || item.date
@@ -81,7 +81,7 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
               // Preserve the server-side timestamp; fall back to now only at insertion time
               date: data.alert.created_at || data.alert.date || new Date().toISOString(),
               fingerprint: data.alert.fingerprint || `INV-${data.alert.invoice_id || data.alert.invoiceId}`,
-              fraudType: data.alert.fraud_type || data.alert.fraudType || 'Systemic Anomaly',
+              fraudType: (data.alert.fraud_rule === 'dilution_rate_high') ? 'DILUTION_FRAUD' : (data.alert.fraud_rule || data.alert.fraud_type || data.alert.fraudType || 'Systemic Anomaly'),
             };
             return [mappedAlert, ...prev].slice(0, 50);
           });

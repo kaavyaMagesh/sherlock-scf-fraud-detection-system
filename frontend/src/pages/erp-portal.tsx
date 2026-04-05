@@ -105,7 +105,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
     const [poForm, setPoForm] = useState({ supplier_id: '', amount: '', quantity: '', goods_category: '', delivery_location: '', payment_terms: '', po_date: new Date().toISOString().split('T')[0], parent_po_id: '' });
     const [grnForm, setGrnForm] = useState({ po_id: '', amount_received: '', quantity: '', goods_category: '', receipt_date: new Date().toISOString().split('T')[0] });
     const [delForm, setDelForm] = useState({ grn_id: '', confirmed_by: '', delivery_status: 'DELIVERED', notes: '', delivery_date: new Date().toISOString().split('T')[0] });
-    const [disputeForm, setDisputeForm] = useState({ dispute_reason: 'GOODS_RETURNED', dispute_notes: '' });
+    const [disputeForm, setDisputeForm] = useState({ dispute_reason: 'GOODS_RETURNED', deduction_amount: '', dispute_notes: '' });
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -266,7 +266,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
                                 <button
                                     onClick={() => {
                                         setShowDisputeModal(row.id);
-                                        setDisputeForm({ dispute_reason: 'GOODS_RETURNED', dispute_notes: '' });
+                                        setDisputeForm({ dispute_reason: 'GOODS_RETURNED', deduction_amount: '', dispute_notes: '' });
                                     }}
                                     disabled={row.status === 'DISPUTED'}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-bold border transition-all ${row.status === 'DISPUTED' ? 'bg-muted text-muted-foreground border-border' : 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20'}`}
@@ -308,6 +308,17 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
                                         <option value="QUANTITY_MISMATCH">QUANTITY_MISMATCH</option>
                                         <option value="FRAUDULENT">FRAUDULENT (Direct Signal)</option>
                                     </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase tracking-wider text-muted-foreground">Deduction Amount (₹)</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        placeholder="Enter amount to be deducted..."
+                                        value={disputeForm.deduction_amount}
+                                        onChange={e => setDisputeForm({ ...disputeForm, deduction_amount: e.target.value })}
+                                        className="w-full p-2.5 bg-background border border-border/50 rounded-lg focus:border-primary outline-none"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs uppercase tracking-wider text-muted-foreground">Detailed Notes</label>
