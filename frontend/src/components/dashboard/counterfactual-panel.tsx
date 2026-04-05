@@ -34,7 +34,7 @@ export function CounterfactualPanel({
                 <div>
                     <h2 className="text-lg font-semibold text-foreground glow-text flex items-center gap-2">
                         <HelpCircle className="w-5 h-5 text-primary" />
-                        Counterfactual AI
+                        Counterfactual Solution
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">"What would make this safe?"</p>
                 </div>

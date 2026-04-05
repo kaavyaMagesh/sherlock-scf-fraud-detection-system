@@ -70,7 +70,7 @@ export default function VerificationCenterPage() {
                 </div>
             </div>
 
-            {/* Counterfactual AI Row */}
+            {/* Counterfactual Solution Row */}
             <div className="grid grid-cols-1 gap-6">
                 <div className="min-h-[300px] h-full">
                     <ExpandableWrapper>

@@ -340,49 +340,39 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     const docData = docsQuery.rows[0];
 
     if (docData) {
-        // Task A: Document Consistency (Refined)
-        const resA = await semanticService.verifyDocumentConsistency(
-            { description: docData.inv_desc, amount: docData.inv_amount },
-            { description: docData.po_desc, amount: docData.po_amount },
-            { description: docData.grn_desc || 'Received items', received: docData.amount_received }
-        );
-        if (resA && resA.isConsistent === false) applyPenalty('semantic_mismatch', resA.mismatchReason);
+        // --- LAYER 6: UNIFIED SEMANTIC ANALYSIS (SINGLE-SHOT) ---
+        const historyQuery = `SELECT goods_category FROM invoices WHERE supplier_id = $1 ORDER BY id DESC LIMIT 5`;
+        const historyRes = await pool.query(historyQuery, [supplierId]);
+        const history = historyRes.rows.map(r => r.goods_category).join(' | ');
 
-        // Task B: Vague Description
-        const resB = await semanticService.checkVagueDescriptions(docData.inv_desc);
-        if (resB && resB.isVague === true) applyPenalty('vague_description', resB.reason);
-
-        // Task D: Geography Plausibility (NEW)
-        const resD = await semanticService.checkGeographyPlausibility(
-            supplier, 
-            docData.inv_loc || docData.po_loc, 
-            docData.inv_desc
+        const unified = await semanticService.runUnifiedSemanticAnalysis(
+            invoiceId, 
+            supplier,
+            { description: docData.inv_desc, amount: docData.inv_amount, location: docData.inv_loc, terms: docData.inv_terms, date: docData.invoice_date, dueDate: docData.expected_payment_date },
+            { description: docData.po_desc, amount: docData.po_amount, location: docData.po_loc, terms: docData.po_terms },
+            { description: `Received items`, received: docData.amount_received },
+            history
         );
-        if (resD && resD.isPlausible === false) applyPenalty('geographical_anomaly', resD.reason);
 
-        // Task E: Payment Timeline Norms (NEW)
-        const resE = await semanticService.checkPaymentTimelineNorms(
-            { 
-                payment_terms: docData.inv_terms || docData.po_terms, 
-                amount: docData.inv_amount,
-                invoice_date: docData.invoice_date,
-                expected_payment_date: docData.expected_payment_date
-            },
-            supplier
-        );
-        if (resE && resE.isNormal === false) applyPenalty('payment_timeline_anomaly', resE.reason);
+        if (unified) {
+            if (unified.consistency && !unified.consistency.isConsistent) applyPenalty('semantic_mismatch', unified.consistency.reason);
+            if (unified.vagueness && unified.vagueness.isVague) applyPenalty('vague_description', unified.vagueness.reason);
+            if (unified.geography && !unified.geography.isPlausible) applyPenalty('geographical_anomaly', unified.geography.reason);
+            if (unified.timeline && !unified.timeline.isNormal) applyPenalty('payment_timeline_anomaly', unified.timeline.reason);
+            if (unified.similarity && unified.similarity.isSuspicious) applyPenalty('templated_invoices', unified.similarity.reason);
+            
+            // Special: Inject the holistic forensic narrative as a synthetic factor for Layer 7 cleanup
+            if (unified.forensicNarrative) {
+                applyPenalty('unified_ai_narrative', unified.forensicNarrative);
+            }
+        }
     }
-
-    // Task C: Supplier History Similarity
-    const resC = await semanticService.analyzeSupplierSimilarity(supplierId);
-    if (resC && resC.isSuspicious === true) applyPenalty('templated_invoices', resC.reason);
 
     // Rule 26: Dispute Check (Dilution Signal)
     const disputeQuery = await pool.query('SELECT 1 FROM disputes WHERE invoice_id = $1', [invoiceId]);
     if (disputeQuery.rows.length > 0) {
         applyPenalty('invoice_disputed', 'Buyer has raised a formal dispute against this invoice (dilution signal)');
     }
-
     // Layer 3 composite score (0-100): weighted across all factors.
     totalScore = computeCompositeScore(finalBreakdown);
 

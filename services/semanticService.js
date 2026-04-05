@@ -20,6 +20,7 @@ const verifyDocumentConsistency = async (invoice, po, grn) => {
         - **Quantity Consistency**: Check if quantity/volume in descriptions aligns across documents.
         
         Return JSON format only: { "isConsistent": boolean, "mismatchReason": string, "riskPoints": number (0-40) }
+        *Instruction*: Be extremely concise (max 70 words). Summary of mismatch only.
     `;
 
     const cacheKey = `consistency-${invoice.description}-${po.description}-${grn.description}`;
@@ -51,6 +52,7 @@ const checkGeographyPlausibility = async (supplier, deliveryLocation, goods) => 
         Is it unusual for this type of goods to be delivered to this location? 
         (e.g., 100 tons of heavy machinery delivered to a residential zip code or a remote island with no industrial port).
         Return JSON format only: { "isPlausible": boolean, "points": number (0-25), "reason": string }
+        *Instruction*: Be extremely concise (max 70 words). Just the core anomaly reason.
     `;
 
     const response = await llmService.generateContent(prompt, `geo-${deliveryLocation}-${goods}`);
@@ -78,6 +80,7 @@ const checkPaymentTimelineNorms = async (invoice, supplier) => {
         Is this timeline suspicious or outside industry norms? 
         (e.g., Immediate 1-day payment for a $10M construction project, or 360-day terms for perishable food).
         Return JSON format only: { "isNormal": boolean, "points": number (0-20), "reason": string }
+        *Instruction*: Be extremely concise (max 70 words). Summary of anomaly only.
     `;
 
     const response = await llmService.generateContent(prompt, `terms-${terms}-${amount}`);
@@ -98,6 +101,7 @@ const checkVagueDescriptions = async (text) => {
         Description: "${text}"
         Examples of vague: 'Services rendered', 'Goods supplied', 'Consulting fees', 'Misc items'.
         Return JSON: { "isVague": boolean, "points": number (0-15), "reason": string }
+        *Instruction*: Be extremely concise (max 70 words).
     `;
 
     const response = await llmService.generateContent(prompt, `vague-${text}`);
@@ -128,6 +132,7 @@ const analyzeSupplierSimilarity = async (supplierId) => {
         
         Are these suspiciously identical or too similar for this industry? 
         Return JSON: { "isSuspicious": boolean, "points": number (0-30), "reason": string }
+        *Instruction*: Be extremely concise (max 70 words).
     `;
 
     const response = await llmService.generateContent(prompt, `similarity-${supplierId}`);
@@ -140,10 +145,52 @@ const analyzeSupplierSimilarity = async (supplierId) => {
     }
 };
 
+const runUnifiedSemanticAnalysis = async (invoiceId, supplier, invoice, po, grn, history) => {
+    const prompt = `
+        Perform a unified forensic semantic analysis for this trade (Invoice ID: ${invoiceId}):
+        
+        1. **Documents**: 
+           - Inv: "${invoice.description}" (Amt: ${invoice.amount}, Loc: ${invoice.location}, Terms: ${invoice.terms})
+           - PO: "${po.description}" (Amt: ${po.amount}, Loc: ${po.location}, Terms: ${po.terms})
+           - GRN: "${grn.description}" (Recv status: ${grn.received})
+        2. **Supplier Context**: 
+           - Name: "${supplier.name}" (Industry: ${supplier.industry})
+           - Recent History: ${history}
+
+        **Tasks**:
+        A. **Consistency**: Check if goods and quantities align across Inv, PO, and GRN. Flag mismatches.
+        B. **Geography**: Is the delivery location ("${invoice.location}") plausible for these goods and this supplier?
+        C. **Timeline**: Are terms ("${invoice.terms}") and payment timeline (Date: ${invoice.date}, Due: ${invoice.dueDate}) within industry norms?
+        D. **Vagueness**: Is the invoice description too vague (e.g. "Services rendered")?
+        E. **Similarity**: Does the description look like a bot-generated template compared to history?
+
+        Return JSON format only:
+        {
+            "consistency": { "isConsistent": boolean, "reason": string, "points": number (0-40) },
+            "geography": { "isPlausible": boolean, "reason": string, "points": number (0-25) },
+            "timeline": { "isNormal": boolean, "reason": string, "points": number (0-20) },
+            "vagueness": { "isVague": boolean, "reason": string, "points": number (0-15) },
+            "similarity": { "isSuspicious": boolean, "reason": string, "points": number (0-30) },
+            "forensicNarrative": "A concise (max 100 words), professional summary that bridges both deterministic and semantic findings for the investigator."
+        }
+    `;
+
+    const response = await llmService.generateContent(prompt, `unified-${invoiceId}`);
+    try {
+        const trimmed = String(response).trim();
+        const jsonBlock = trimmed.match(/\{[\s\S]*\}/);
+        return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
+    } catch (e) {
+        console.error('Unified analysis parse failed:', e);
+        return null;
+    }
+};
+
 module.exports = {
     verifyDocumentConsistency,
     checkVagueDescriptions,
     analyzeSupplierSimilarity,
     checkGeographyPlausibility,
-    checkPaymentTimelineNorms
+    checkPaymentTimelineNorms,
+    runUnifiedSemanticAnalysis
 };

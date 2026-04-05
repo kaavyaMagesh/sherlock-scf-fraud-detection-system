@@ -63,7 +63,22 @@ function classifyFraudDNA(breakdown) {
 
     const factors = breakdown.map(b => b.factor);
     let typologies = [];
-    let evidence = breakdown.map(b => b.detail).filter(Boolean).slice(0, 5);
+    
+    // Separate standard markers and Gemini semantic reasoning
+    const geminiFactors = ['semantic_mismatch', 'vague_description', 'templated_invoices', 'geographical_anomaly', 'payment_timeline_anomaly', 'unified_ai_narrative'];
+    
+    const standardEvidence = breakdown
+        .filter(b => b.detail && !geminiFactors.includes(b.factor))
+        .map(b => b.detail)
+        .slice(0, 5);
+        
+    const geminiReasoningFactor = breakdown.find(b => b.factor === 'unified_ai_narrative');
+    const geminiReasoning = geminiReasoningFactor ? geminiReasoningFactor.detail : 
+        breakdown
+            .filter(b => b.detail && geminiFactors.includes(b.factor))
+            .map(b => b.detail)
+            .join('. ')
+            .replace(/\. \./g, '.') + (breakdown.some(b => geminiFactors.includes(b.factor)) ? '.' : '');
 
     // ── DOUBLE_FINANCING ──────────────────────────────────────────────────────
     // Triggered by exact or fuzzy duplicate detection; points can be very high
@@ -206,7 +221,11 @@ function classifyFraudDNA(breakdown) {
     // Assign primary typology (highest confidence after sort)
     if (typologies.length > 0) typologies[0].isPrimary = true;
 
-    return { typologies, evidence };
+    return { 
+        typologies, 
+        evidence: standardEvidence,
+        geminiReasoning: geminiReasoning || null 
+    };
 }
 
 async function generateExplanation(invoiceId, riskResult) {

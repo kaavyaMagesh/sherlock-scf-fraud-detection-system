@@ -1,4 +1,4 @@
-import { Fingerprint, RefreshCcw, ShieldAlert, Info } from "lucide-react";
+import { Fingerprint, RefreshCcw, ShieldAlert, Info, Binary } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +21,7 @@ interface FraudDnaProps {
             isPrimary?: boolean;
         }>;
         evidence: string[];
+        geminiReasoning?: string;
         // Legacy fields for compatibility if they still exist in some database records
         typology?: string;
         confidence?: number;
@@ -174,8 +175,20 @@ export function FraudDnaCard({ dna, isLoading, isError, error, breakdown, impati
                                         <span>{ev}</span>
                                     </div>
                                 ))
-                            ) : (
+                            ) : !dna?.geminiReasoning && (
                                 <div className="text-[10px] text-muted-foreground italic font-mono">No specific DNA markers identified.</div>
+                            )}
+
+                            {dna?.geminiReasoning && (
+                                <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                                    <div className="text-[9px] font-bold text-primary uppercase mb-1 flex items-center gap-1.5">
+                                        <Binary className="w-3 h-3" />
+                                        AI Reasoning
+                                    </div>
+                                    <div className="text-[10px] text-foreground font-medium leading-relaxed italic">
+                                        "{dna.geminiReasoning}"
+                                    </div>
+                                </div>
                             )}
                         </div>
 
