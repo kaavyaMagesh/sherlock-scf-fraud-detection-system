@@ -6,8 +6,10 @@ import {
   ShieldCheck,
   BellRing,
   PackageOpen,
+  BrainCircuit,
   LogOut
 } from "lucide-react";
+
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
@@ -21,6 +23,7 @@ export function AppSidebar() {
     { href: "/verification", label: "Verification Center", icon: ShieldCheck },
     { href: "/alerts", label: "Anomaly Alerts", icon: BellRing },
     { href: "/velocity", label: "Velocity Monitor", icon: Activity },
+    { href: "/ml-insights", label: "ML Risk Clustering", icon: BrainCircuit },
 
     { href: "/erp-portal", label: "Buyer/Supplier ERP", icon: PackageOpen },
   ];
