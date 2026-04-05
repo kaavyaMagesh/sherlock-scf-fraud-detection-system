@@ -8,11 +8,11 @@ const identityService = require('../services/identityService');
 const submitInvoice = async (req, res) => {
     try {
         const lenderId = req.lenderId;
-        const { 
-            invoice_number, po_id, supplier_id, buyer_id, amount, 
-            expected_payment_date, goods_category, delivery_location, payment_terms
+        const {
+            invoice_number, po_id, supplier_id, buyer_id, amount,
+            expected_payment_date, goods_category, invoice_date, delivery_location, payment_terms
         } = req.body;
-        const invoiceDate = new Date();
+        const invoiceDate = invoice_date ? new Date(invoice_date) : new Date();
 
         if (!invoice_number || !po_id || !supplier_id || !buyer_id || !amount || !expected_payment_date) {
             return res.status(400).json({ error: 'Missing required invoice fields' });
@@ -150,6 +150,7 @@ const getInvoiceDetails = async (req, res) => {
                    po.payment_terms AS po_payment_terms,
                    grn.amount_received AS grn_amount,
                    grn.grn_date AS grn_date,
+                   grn.goods_category AS grn_category,
                    e.fraud_dna,
                    e.counterfactual,
                    e.impatience_signal,
@@ -215,10 +216,11 @@ const getInvoiceDetails = async (req, res) => {
             impatienceSignal = explainabilityService.detectImpatienceSignal(breakdown);
         }
 
-        const grnDesc =
+        const grnDesc = invoice.grn_category ? invoice.grn_category : (
             invoice.grn_amount != null
                 ? `Goods receipt — amount received: ${invoice.grn_amount} (aligned to PO line items where applicable)`
-                : null;
+                : null
+        );
 
         res.json({
             ...invoice,
@@ -316,10 +318,10 @@ const reEvaluateInvoice = async (req, res) => {
         const invoice = invQuery.rows[0];
 
         const fingerprint = validationService.generateFingerprint(
-            invoice.supplier_id, 
-            invoice.buyer_id, 
-            invoice.invoice_number, 
-            invoice.amount, 
+            invoice.supplier_id,
+            invoice.buyer_id,
+            invoice.invoice_number,
+            invoice.amount,
             invoice.invoice_date
         );
 

@@ -2,36 +2,30 @@ const pool = require('./db/index');
 const identityService = require('./services/identityService');
 
 async function fixCredentials() {
+    console.log("Starting batch identity onboarding...");
     try {
-        console.log("Checking for companies with missing credentials...");
-        const res = await pool.query('SELECT id, name FROM companies WHERE verifiable_credential IS NULL OR did IS NULL');
-        
-        if (res.rows.length === 0) {
-            console.log("No companies found missing credentials. All set!");
-            process.exit(0);
+        // Fetch all companies that are not yet verified or missing credentials
+        const result = await pool.query(`
+            SELECT id, name FROM companies 
+            WHERE credential_verified = false OR verifiable_credential IS NULL OR did IS NULL
+        `);
+
+        console.log(`Found ${result.rows.length} companies requiring onboarding.`);
+
+        for (const company of result.rows) {
+            console.log(`Onboarding ${company.name} (ID: ${company.id})...`);
+            try {
+                const onboard = await identityService.onboardSupplier(company.id);
+                console.log(`✅ Success for ${company.name}: ${onboard.did}`);
+            } catch (err) {
+                console.error(`❌ Failed for ${company.name}:`, err.message);
+            }
         }
 
-        console.log(`Found ${res.rows.length} companies needing onboarding.`);
-        
-        for (const company of res.rows) {
-            console.log(`Onboarding [ID: ${company.id}] ${company.name}...`);
-            await identityService.onboardSupplier(company.id);
-            console.log(`✅ Onboarded ${company.name}`);
-        }
-        
-        // Final verification check
-        const verifyRes = await pool.query('SELECT count(*) FROM companies WHERE verifiable_credential IS NULL OR did IS NULL');
-        const remaining = parseInt(verifyRes.rows[0].count);
-        
-        if (remaining === 0) {
-            console.log('\nSUCCESS: All companies now have valid DIDs and VCs.');
-        } else {
-            console.log(`\nWARNING: ${remaining} companies still have missing credentials!`);
-        }
-        
+        console.log("Batch onboarding complete!");
         process.exit(0);
-    } catch (err) {
-        console.error('Error fixing credentials:', err);
+    } catch (error) {
+        console.error("Batch onboarding failed:", error);
         process.exit(1);
     }
 }

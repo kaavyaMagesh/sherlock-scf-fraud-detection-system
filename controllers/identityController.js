@@ -53,7 +53,7 @@ const getCompanies = async (req, res) => {
 const createCompany = async (req, res) => {
     try {
         const lenderId = req.lenderId;
-        const { name, tier } = req.body;
+        const { name, tier, annual_revenue } = req.body;
 
         if (!name) {
             return res.status(400).json({ error: 'Company name is required' });
@@ -61,7 +61,7 @@ const createCompany = async (req, res) => {
 
         const result = await pool.query(
             'INSERT INTO companies (lender_id, name, tier, annual_revenue, monthly_avg_invoicing) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [lenderId, name, tier || 1, 1000000, 50000] // Defaults for manual entries
+            [lenderId, name, tier || 1, annual_revenue || 1000000, 50000] // Defaults for manual entries
         );
 
         res.status(201).json(result.rows[0]);

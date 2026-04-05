@@ -69,7 +69,9 @@ const executeSchema = async () => {
       po_id INTEGER REFERENCES purchase_orders(id),
       amount_received DECIMAL,
       quantity INTEGER,
+      goods_category VARCHAR(100),
       grn_date TIMESTAMP,
+      receipt_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 

@@ -23,7 +23,7 @@ function Router() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("userRole");
+    const role = (localStorage.getItem("userRole") || "").toUpperCase();
 
     // NOT LOGGED IN
     if (!token) {

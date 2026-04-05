@@ -61,7 +61,7 @@ export default function ERPPortalPage() {
 function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) {
     const queryClient = useQueryClient();
     const { companies } = useCompanies();
-    const suppliers = companies?.filter(c => c.tier === 2 || c.name.toLowerCase().includes('supplier') || c.id > 3) || []; // Based on seed logic
+    const suppliers = companies?.filter(c => c.id.toString() !== localStorage.getItem("companyId")) || []; // Allow any other company to be a supplier
 
     const fetchApi = async (endpoint: string) => {
         const res = await fetch(`http://localhost:3000/api/erp/${endpoint}`, {
@@ -179,7 +179,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
                                         <label className="text-muted-foreground text-xs uppercase tracking-wider">Parent PO ID (Optional)</label>
                                         <select value={poForm.parent_po_id} onChange={e => setPoForm({ ...poForm, parent_po_id: e.target.value })} className="w-full bg-background border border-border/50 rounded p-2 text-foreground focus:ring-primary focus:border-primary">
                                             <option value="">None (Root PO)</option>
-                                            {pos?.map((p: any) => <option key={p.id} value={p.id}>PO-{p.id} | ${p.amount}</option>)}
+                                            {pos?.map((p: any) => <option key={p.id} value={p.id}>PO-{p.id} | ₹{p.amount}</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -196,7 +196,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
                                         </select>
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-muted-foreground text-xs uppercase tracking-wider">Amount Received Value ($)</label>
+                                        <label className="text-muted-foreground text-xs uppercase tracking-wider">Amount Received Value (₹)</label>
                                         <input required type="number" value={grnForm.amount_received} onChange={e => setGrnForm({ ...grnForm, amount_received: e.target.value })} className="w-full bg-background border border-border/50 rounded p-2 text-foreground focus:ring-primary focus:border-primary" />
                                     </div>
                                     <div className="space-y-1">
@@ -373,7 +373,7 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
         onSuccess: (data) => {
             setInvResult({ status: data.status, riskScore: data.riskScore });
             setInvError('');
-            setInvForm({ po_id: '', invoice_number: '', amount: '', goods_category: '', invoice_date: new Date().toISOString().split('T')[0] });
+            setInvForm({ po_id: '', invoice_number: '', amount: '', goods_category: '', delivery_location: '', payment_terms: '', invoice_date: new Date().toISOString().split('T')[0] });
         },
         onError: (err: any) => {
             setInvError(err.message);
@@ -448,7 +448,7 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
                                 <label className="text-xs uppercase tracking-wider text-muted-foreground">Select Purchase Order</label>
                                 <select required value={invForm.po_id} onChange={e => setInvForm({ ...invForm, po_id: e.target.value })} className="w-full p-2.5 bg-background border border-border/50 rounded focus:border-primary outline-none">
                                     <option value="">Choose an open PO...</option>
-                                    {pos?.map((p: any) => <option key={p.id} value={p.id}>PO-{p.id} | {p.buyer_name} | ${p.amount}</option>)}
+                                    {pos?.map((p: any) => <option key={p.id} value={p.id}>PO-{p.id} | {p.buyer_name} | ₹{p.amount}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -509,7 +509,7 @@ function TableLayout({ data, loading, columns, actions }: { data: any[], loading
                                     {c === 'delivery_status' ? (
                                         <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${row[c] === 'DELIVERED' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>{row[c]}</span>
                                     ) : (c.includes('amount') || c === 'quantity') ? (
-                                        <span className={c === 'quantity' ? "text-secondary" : "text-primary"}>{c === 'quantity' ? row[c] : '$' + Number(row[c]).toLocaleString()}</span>
+                                        <span className={c === 'quantity' ? "text-foreground font-bold" : "text-primary"}>{c === 'quantity' ? row[c] : '₹' + Number(row[c]).toLocaleString('en-IN')}</span>
                                     ) : c.includes('date') ? (
                                         new Date(row[c]).toLocaleDateString()
                                     ) : c === 'id' ? (

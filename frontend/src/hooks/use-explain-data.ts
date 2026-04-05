@@ -4,7 +4,8 @@ const API_BASE = 'http://localhost:3000/api';
 
 const getHeaders = (lenderId: string) => ({
   'Content-Type': 'application/json',
-  'x-lender-id': lenderId
+  'x-lender-id': lenderId,
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
 });
 
 export function useExplainData(invoiceId: string | number | null) {

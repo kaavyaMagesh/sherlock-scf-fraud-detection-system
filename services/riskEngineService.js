@@ -22,6 +22,7 @@ const FRAUD_RULES = [
     { id: 'grn_invoice_mismatch', points: 25, description: 'Invoice vs GRN receipt amount misaligned' },
     { id: 'geographical_anomaly', points: 25, description: 'Unlikely delivery location for cargo type' },
     { id: 'payment_timeline_anomaly', points: 20, description: 'Payment terms outside industry norms' },
+    { id: 'invoice_disputed', points: 50, description: 'Formal buyer dispute raised on invoice' },
 ];
 
 const graphEngineService = require('./graphEngineService');
@@ -57,7 +58,8 @@ const FACTOR_WEIGHTS = {
     vague_description: 0.3,
     templated_invoices: 0.65,
     geographical_anomaly: 0.75,
-    payment_timeline_anomaly: 0.5
+    payment_timeline_anomaly: 0.5,
+    invoice_disputed: 1.0
 };
 
 let auditSchemaInitPromise = null;
@@ -342,11 +344,11 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
             { description: docData.po_desc, amount: docData.po_amount },
             { description: `Received items`, received: docData.amount_received }
         );
-        if (resA && !resA.isConsistent) applyPenalty('semantic_mismatch', resA.mismatchReason);
+        if (resA && resA.isConsistent === false) applyPenalty('semantic_mismatch', resA.mismatchReason);
 
         // Task B: Vague Description
         const resB = await semanticService.checkVagueDescriptions(docData.inv_desc);
-        if (resB && resB.isVague) applyPenalty('vague_description', resB.reason);
+        if (resB && resB.isVague === true) applyPenalty('vague_description', resB.reason);
 
         // Task D: Geography Plausibility (NEW)
         const resD = await semanticService.checkGeographyPlausibility(
@@ -354,7 +356,7 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
             docData.inv_loc || docData.po_loc, 
             docData.inv_desc
         );
-        if (resD && !resD.isPlausible) applyPenalty('geographical_anomaly', resD.reason);
+        if (resD && resD.isPlausible === false) applyPenalty('geographical_anomaly', resD.reason);
 
         // Task E: Payment Timeline Norms (NEW)
         const resE = await semanticService.checkPaymentTimelineNorms(
@@ -366,12 +368,18 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
             },
             supplier
         );
-        if (resE && !resE.isNormal) applyPenalty('payment_timeline_anomaly', resE.reason);
+        if (resE && resE.isNormal === false) applyPenalty('payment_timeline_anomaly', resE.reason);
     }
 
     // Task C: Supplier History Similarity
     const resC = await semanticService.analyzeSupplierSimilarity(supplierId);
-    if (resC && resC.isSuspicious) applyPenalty('templated_invoices', resC.reason);
+    if (resC && resC.isSuspicious === true) applyPenalty('templated_invoices', resC.reason);
+
+    // Rule 26: Dispute Check (Dilution Signal)
+    const disputeQuery = await pool.query('SELECT 1 FROM disputes WHERE invoice_id = $1', [invoiceId]);
+    if (disputeQuery.rows.length > 0) {
+        applyPenalty('invoice_disputed', 'Buyer has raised a formal dispute against this invoice (dilution signal)');
+    }
 
     // Layer 3 composite score (0-100): weighted across all factors.
     totalScore = computeCompositeScore(finalBreakdown);

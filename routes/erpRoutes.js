@@ -15,6 +15,9 @@ router.post('/goods-receipts', requireBuyer, erpController.createGoodsReceipt);
 router.get('/deliveries', requireBuyer, erpController.getDeliveries);
 router.post('/deliveries', requireBuyer, erpController.createDelivery);
 
+router.get('/buyer-invoices', requireBuyer, erpController.getBuyerInvoices);
+router.post('/disputes', requireBuyer, erpController.createDispute);
+
 // Supplier Routes
 router.get('/my-purchase-orders', requireSupplier, erpController.getSupplierPurchaseOrders);
 

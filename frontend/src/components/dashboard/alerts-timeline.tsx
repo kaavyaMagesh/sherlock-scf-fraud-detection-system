@@ -27,8 +27,9 @@ export function AlertsPanel({ onSelectAlert }: AlertsPanelProps) {
     const fetchExistingAlerts = async () => {
       try {
         const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
+        const token = localStorage.getItem('token');
         const res = await fetch(`http://localhost:3000/api/dashboard/alerts?page=1`, {
-          headers: { 'x-lender-id': lenderId }
+          headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();

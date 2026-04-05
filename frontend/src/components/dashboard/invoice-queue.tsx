@@ -122,7 +122,8 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider border ${invoice.status === 'APPROVED' ? 'bg-primary/10 text-primary border-primary/20' :
                                                 invoice.status === 'BLOCKED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
                                                     invoice.status === 'REVIEW' ? 'bg-warning/10 text-warning border-warning/20' :
-                                                        'bg-muted text-muted-foreground border-border'
+                                                        invoice.status === 'DISPUTED' ? 'bg-destructive/20 text-destructive border-destructive/40 font-bold' :
+                                                            'bg-muted text-muted-foreground border-border'
                                                 }`}>
                                                 {invoice.status}
                                             </span>
@@ -223,6 +224,17 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
                             </div>
                         ) : details ? (
                             <>
+                                {details.status === 'DISPUTED' && (
+                                    <div className="mx-0 mb-6 p-4 rounded-xl bg-destructive/20 border border-destructive/50 animate-pulse">
+                                        <div className="flex items-center gap-2 text-destructive mb-1">
+                                            <ShieldAlert className="w-5 h-5" />
+                                            <span className="font-black text-xs uppercase tracking-tighter">Active Buyer Dispute Detected</span>
+                                        </div>
+                                        <p className="text-[10px] text-destructive-foreground font-medium leading-relaxed">
+                                            The buyer has formally disputed this invoice. This is a critical signal for **Dilution Fraud** (Goods Returned/Quality Issues). Score has been adjusted.
+                                        </p>
+                                    </div>
+                                )}
                                 <section>
                                     <div className="flex items-center justify-between mb-2">
                                         <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Gateway Identity Proof</h5>
@@ -344,7 +356,7 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
                                         </div>
                                         <div className="flex justify-between mt-2 pt-2 border-t border-border/50">
                                             <span className="text-xs text-muted-foreground">Status</span>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold bg-muted ${details.status === 'BLOCKED' ? 'text-destructive' : 'text-primary'}`}>{details.status}</span>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${details.status === 'BLOCKED' || details.status === 'DISPUTED' ? 'text-destructive bg-destructive/10' : 'text-primary bg-primary/10'}`}>{details.status}</span>
                                         </div>
                                     </div>
                                     {details.supplier_id != null && (

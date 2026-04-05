@@ -4,7 +4,8 @@ const API_BASE = 'http://localhost:3000/api';
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-lender-id': localStorage.getItem('sherlock-lender-id') || '1'
+  'x-lender-id': localStorage.getItem('sherlock-lender-id') || '1',
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
 });
 
 export function useKPI() {

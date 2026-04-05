@@ -32,7 +32,7 @@ async function testERPFlow() {
         console.log(`[3] Buyer generating Goods Receipt Note for PO-${poId}...`);
         const grnRes = await fetch(`${BASE_URL}/erp/goods-receipts`, {
             method: 'POST', headers: buyerHeaders,
-            body: JSON.stringify({ po_id: poId, amount_received: 50000, quantity: 100 })
+            body: JSON.stringify({ po_id: poId, amount_received: 50000, quantity: 100, goods_category: "Heavy Machinery" })
         });
         const grnData = await grnRes.json();
         const grnId = grnData.id;
@@ -73,6 +73,7 @@ async function testERPFlow() {
             buyer_id: 1,        // Tata ID
             invoice_number: invoiceNum,
             amount: 50000,
+            invoice_date: new Date().toISOString(),
             expected_payment_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             goods_category: "Heavy Machinery"
         };

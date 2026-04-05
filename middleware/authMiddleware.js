@@ -13,6 +13,7 @@ const requireAuth = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded; // { id, company_id, lender_id, role }
+        req.lenderId = decoded.lender_id;
         next();
     } catch (err) {
         return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
@@ -21,7 +22,9 @@ const requireAuth = (req, res, next) => {
 
 const requireRole = (allowedRoles) => {
     return (req, res, next) => {
-        if (!req.user || !allowedRoles.includes(req.user.role)) {
+        const userRole = (req.user?.role || '').toUpperCase();
+        const normalizedAllowed = allowedRoles.map(r => r.toUpperCase());
+        if (!req.user || !normalizedAllowed.includes(userRole)) {
             return res.status(403).json({ error: `Forbidden: Requires role in [${allowedRoles.join(',')}]` });
         }
         next();

@@ -5,8 +5,6 @@ import {
   Network,
   ShieldCheck,
   BellRing,
-  Upload,
-  Database,
   PackageOpen,
   LogOut
 } from "lucide-react";
@@ -14,7 +12,7 @@ import {
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
 
-  const userRole = localStorage.getItem("userRole");
+  const userRole = (localStorage.getItem("userRole") || "").toUpperCase();
 
   const allNavItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },

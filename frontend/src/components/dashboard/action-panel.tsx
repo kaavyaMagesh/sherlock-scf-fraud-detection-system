@@ -36,9 +36,10 @@ export function ActionPanel({ selectedInvoiceId, defaultAmount }: ActionPanelPro
       try {
         const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
         
+        const token = localStorage.getItem('token');
         const [invRes, auditRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}`, { headers: { 'x-lender-id': lenderId } }),
-          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}/audits`, { headers: { 'x-lender-id': lenderId } })
+          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } }),
+          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}/audits`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (invRes.ok && auditRes.ok) {
@@ -82,11 +83,13 @@ export function ActionPanel({ selectedInvoiceId, defaultAmount }: ActionPanelPro
         ? `http://localhost:3000/api/invoices/${selectedInvoiceId}/override` 
         : `http://localhost:3000/api/invoices/${selectedInvoiceId}/disburse`;
       
+      const token = localStorage.getItem('token');
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-lender-id': lenderId
+          'x-lender-id': lenderId,
+          'Authorization': `Bearer ${token}`
         },
         body: type === 'override' ? JSON.stringify({ reason }) : undefined
       });
