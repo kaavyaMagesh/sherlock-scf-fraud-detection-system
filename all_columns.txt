@@ -1,0 +1,1 @@
+created_at, lender_id, first_invoice_date, last_invoice_date, credential_verified, is_revoked, id, tier, annual_revenue, monthly_avg_invoicing, name, role, industry_code, did, verifiable_credential

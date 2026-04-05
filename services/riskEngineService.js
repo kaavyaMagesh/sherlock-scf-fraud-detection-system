@@ -279,8 +279,10 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
 
     if (dilutionQuery.rows[0] && dilutionQuery.rows[0].expected_total) {
         const expTotal = Number(dilutionQuery.rows[0].expected_total);
-        const actTotal = Number(dilutionQuery.rows[0].actual_total);
-        if (expTotal > 0 && actTotal > 0) {
+        // B1 FIX: actTotal defaults to 0 — zero-payment is the worst dilution case,
+        // the old `actTotal > 0` guard was silently skipping it.
+        const actTotal = Number(dilutionQuery.rows[0].actual_total) || 0;
+        if (expTotal > 0) {
             const dilutionRate = (expTotal - actTotal) / expTotal;
             if (dilutionRate > 0.05) {
                 applyPenalty(

@@ -102,15 +102,27 @@ const submitInvoice = async (req, res) => {
         // to detect new network patterns (like Carousel loops) that this new invoice might have completed.
         setImmediate(async () => {
             try {
+                // B6 FIX: select each neighbor's own IDs and fields so evaluateRisk
+                // scores them in their correct entity context, not with this invoice's IDs.
                 const neighbors = await pool.query(
-                    `SELECT id FROM invoices 
-                     WHERE (supplier_id = $1 OR buyer_id = $2) 
-                     AND status = 'PENDING' AND id != $3`,
+                    `SELECT id, supplier_id, buyer_id, lender_id,
+                            amount, invoice_date, expected_payment_date
+                     FROM invoices
+                     WHERE (supplier_id = $1 OR buyer_id = $2)
+                       AND status = 'PENDING' AND id != $3`,
                     [supplier_id, buyer_id, invoice.id]
                 );
                 for (const row of neighbors.rows) {
                     await riskEngineService.evaluateRisk(
-                        lenderId, row.id, supplier_id, buyer_id, 0, new Date(), new Date(), 0, []
+                        row.lender_id || lenderId,
+                        row.id,
+                        row.supplier_id,
+                        row.buyer_id,
+                        row.amount || 0,
+                        row.invoice_date || new Date(),
+                        row.expected_payment_date || new Date(),
+                        0,
+                        []
                     );
                 }
             } catch (err) {

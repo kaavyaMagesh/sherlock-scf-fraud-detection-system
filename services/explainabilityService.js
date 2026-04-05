@@ -119,14 +119,49 @@ function classifyFraudDNA(breakdown) {
     }
 
     // ── DILUTION_FRAUD ────────────────────────────────────────────────────────
-    if (factors.includes('dilution_rate_high') || factors.includes('payment_term_anomaly')) {
-        const pts = sumPoints(['dilution_rate_high', 'payment_term_anomaly']);
+    // B3 FIX: payment_term_anomaly removed — it is a timing risk, not a cash
+    //         collection failure. Grouping it here caused false DILUTION_FRAUD
+    //         positives on invoices with Net-120 terms but clean settlement history.
+    if (factors.includes('dilution_rate_high')) {
+        // B2 FIX: extract the actual dilution percentage from the detail string
+        // so confidence is proportional to how severe the shortfall is.
+        // Detail format: "Rolling 90d dilution rate 32.4% (threshold 5%)"
+        let dilutionPct = 0;
+        try {
+            const dilFactor = breakdown.find(b => b.factor === 'dilution_rate_high');
+            if (dilFactor && typeof dilFactor.detail === 'string') {
+                const match = dilFactor.detail.match(/dilution rate\s+([\d.]+)%/i);
+                if (match) dilutionPct = parseFloat(match[1]);
+            }
+        } catch (_) { /* regex failed — fall through to fallback */ }
+
+        // Formula: min(99,  max(50,  pct × 2))
+        //   30% dilution  → confidence 60
+        //   50% dilution  → confidence 99 (capped)
+        //   0% (no match) → fallback 75
+        const dilutionConf = dilutionPct > 0
+            ? Math.min(99, Math.max(50, Math.round(dilutionPct * 2)))
+            : 75;
+
         typologies.push({
             label: "DILUTION_FRAUD",
-            confidence: Math.min(99, Math.max(50, pts)),
-            action: "Audit historical settlement patterns for this supplier"
+            confidence: dilutionConf,
+            action: "Audit historical settlement patterns and cross-reference dispute logs for this supplier"
         });
     }
+
+    // ── PAYMENT_TERM_RISK ─────────────────────────────────────────────────────
+    // B3 FIX: payment_term_anomaly is a scheduling/timing risk, not a cash
+    //         collection failure — given its own lower-confidence typology.
+    if (factors.includes('payment_term_anomaly')) {
+        const pts = sumPoints(['payment_term_anomaly']);
+        typologies.push({
+            label: "PAYMENT_TERM_RISK",
+            confidence: Math.min(80, Math.max(40, pts)),
+            action: "Review payment schedule with buyer and renegotiate terms to within 90-day standard"
+        });
+    }
+
 
     // ── OVER_INVOICING ────────────────────────────────────────────────────────
     // Confidence is delta-driven; regex hardened with try/catch + looser pattern

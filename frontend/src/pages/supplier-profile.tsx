@@ -355,6 +355,62 @@ export default function SupplierProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Settlement History (Step 6) */}
+            <div className="mt-8 bg-card rounded-2xl p-6 glow-card border border-border/50">
+                <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    Settlement History & Dilution Analysis
+                </h2>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-border/50 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Invoice #</th>
+                                <th className="px-4 py-3 text-right">Invoice Amount</th>
+                                <th className="px-4 py-3 text-right">Settled Amount</th>
+                                <th className="px-4 py-3 text-right">Gap %</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/30">
+                            {companyInvoices.filter((inv: any) => inv.paid_amount !== null).map((inv: any, idx: number) => {
+                                const amount = Number(inv.amount);
+                                const paid = Number(inv.paid_amount);
+                                const gapPercent = amount > 0 ? ((amount - paid) / amount) * 100 : 0;
+                                const isHighDilution = gapPercent > 5;
+
+                                return (
+                                    <tr key={idx} className="group hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-4 text-xs font-mono text-muted-foreground">
+                                            {inv.payment_date ? new Date(inv.payment_date).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="px-4 py-4 text-xs font-bold text-foreground">
+                                            {inv.invoice_number}
+                                        </td>
+                                        <td className="px-4 py-4 text-xs font-mono text-right text-foreground">
+                                            {formatCurrency(amount)}
+                                        </td>
+                                        <td className="px-4 py-4 text-xs font-mono text-right text-primary font-bold">
+                                            {formatCurrency(paid)}
+                                        </td>
+                                        <td className={`px-4 py-4 text-xs font-mono text-right font-bold transition-all ${isHighDilution ? 'text-destructive scale-110' : 'text-muted-foreground'}`}>
+                                            {gapPercent.toFixed(1)}%
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {companyInvoices.filter((inv: any) => inv.paid_amount !== null).length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-xs text-muted-foreground italic">
+                                        No settlement history recorded for this entity.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

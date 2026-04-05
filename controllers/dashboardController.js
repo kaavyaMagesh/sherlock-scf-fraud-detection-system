@@ -45,10 +45,12 @@ const getPortfolio = async (req, res) => {
 
         const invQuery = await pool.query(
             `SELECT i.id, i.invoice_number, i.supplier_id, i.buyer_id, i.amount, i.invoice_date, i.status, i.risk_score,
-                    s.name AS supplier_name, b.name AS buyer_name
+                    s.name AS supplier_name, b.name AS buyer_name,
+                    set.actual_payment_amount AS paid_amount, set.payment_date
              FROM invoices i
              LEFT JOIN companies s ON s.id = i.supplier_id
              LEFT JOIN companies b ON b.id = i.buyer_id
+             LEFT JOIN settlements set ON set.invoice_id = i.id
              WHERE i.lender_id = $1
              ORDER BY i.invoice_date DESC`,
             [lenderIdFromAuth]
@@ -116,6 +118,25 @@ const getKPI = async (req, res) => {
             [lenderId]
         );
 
+        // --- STEP 6: DILUTION & DISPUTE KPIs ---
+        const dilutionResult = await pool.query(
+            `SELECT 
+                COALESCE(SUM(i.amount - s.actual_payment_amount) / NULLIF(SUM(i.amount), 0), 0) as avg_dilution,
+                COUNT(DISTINCT i.supplier_id) FILTER (WHERE (i.amount - s.actual_payment_amount) > 0) as diluted_suppliers
+             FROM invoices i
+             JOIN settlements s ON s.invoice_id = i.id
+             WHERE i.lender_id = $1 AND i.invoice_date >= NOW() - INTERVAL '90 days'`,
+            [lenderId]
+        );
+
+        const disputeValueResult = await pool.query(
+            `SELECT COALESCE(SUM(deduction_amount), 0) as total_disputed
+             FROM disputes d
+             JOIN invoices i ON d.invoice_id = i.id
+             WHERE i.lender_id = $1`,
+            [lenderId]
+        );
+
         const row = result.rows[0];
         const trendRow = trendResult.rows[0] || {};
         const approved = Number(row.approved_invoices) || 0;
@@ -139,7 +160,11 @@ const getKPI = async (req, res) => {
             highRiskGapsChange: pctChange(trendRow.current_alerts, trendRow.previous_alerts),
             totalExposure: parseFloat(row.total_exposure) || 0,
             blockedToday: parseInt(row.blocked_today) || 0,
-            alertsCount: parseInt(alertsResult.rows[0].count) || 0
+            alertsCount: parseInt(alertsResult.rows[0].count) || 0,
+            // New Step 6 Fields
+            averagePortfolioDilution: parseFloat(dilutionResult.rows[0]?.avg_dilution || 0),
+            totalDisputedValue: parseFloat(disputeValueResult.rows[0]?.total_disputed || 0),
+            dilutedSuppliersCount: parseInt(dilutionResult.rows[0]?.diluted_suppliers || 0)
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch KPI' });

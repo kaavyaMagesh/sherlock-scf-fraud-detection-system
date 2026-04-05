@@ -10,7 +10,7 @@ const pool = new Pool({
 
 const executeSchema = async () => {
   const ddl = `
-    DROP TABLE IF EXISTS manual_overrides, explanations, alerts, risk_score_audits, settlements, invoice_fingerprints, portal_users, delivery_confirmations, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders, retail_transactions, retail_accounts CASCADE;
+    DROP TABLE IF EXISTS disputes, manual_overrides, explanations, alerts, risk_score_audits, settlements, invoice_fingerprints, portal_users, delivery_confirmations, invoices, goods_receipts, purchase_orders, trade_relationships, companies, lenders, retail_transactions, retail_accounts CASCADE;
 
     CREATE TABLE IF NOT EXISTS lenders (
       id SERIAL PRIMARY KEY,
@@ -60,6 +60,8 @@ const executeSchema = async () => {
       quantity INTEGER,
       goods_category VARCHAR(100),
       po_date TIMESTAMP,
+      payment_terms VARCHAR(255),
+      delivery_location VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -115,7 +117,7 @@ const executeSchema = async () => {
 
     CREATE TABLE IF NOT EXISTS settlements (
       id SERIAL PRIMARY KEY,
-      invoice_id INTEGER REFERENCES invoices(id),
+      invoice_id INTEGER REFERENCES invoices(id) UNIQUE,
       actual_payment_amount DECIMAL,
       payment_date TIMESTAMP
     );
@@ -156,6 +158,15 @@ const executeSchema = async () => {
       invoice_id INTEGER REFERENCES invoices(id),
       reason_log TEXT NOT NULL,
       auditor_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS disputes (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER REFERENCES invoices(id),
+      reason TEXT NOT NULL,       -- e.g. GOODS_RETURNED, QUALITY_ISSUE, QUANTITY_MISMATCH, FRAUDULENT
+      notes TEXT,
+      deduction_amount DECIMAL,   -- how much the buyer is withholding
       created_at TIMESTAMP DEFAULT NOW()
     );
 

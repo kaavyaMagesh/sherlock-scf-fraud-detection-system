@@ -1,0 +1,224 @@
+﻿[dotenv@17.3.1] injecting env (0) from .env -- tip: ≡ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+node : (node:24780) 
+Warning: SECURITY 
+WARNING: The SSL modes 
+'prefer', 'require', and 
+'verify-ca' are treated 
+as aliases for 
+'verify-full'.
+At line:1 char:1
++ node tmp/inspect_db.js 
+2>&1 | Out-File 
+-FilePath 
+tmp/db_state_utf8.tx ...
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  ((node:24780) Wa...    
+ 'verify-full'.:Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+In the next major 
+version 
+(pg-connection-string 
+v3.0.0 and pg v9.0.0), 
+these modes will adopt 
+standard libpq 
+semantics, which have 
+weaker security 
+guarantees.
+
+To prepare for this 
+change:
+- If you want the 
+current behavior, 
+explicitly use 
+'sslmode=verify-full'
+- If you want libpq 
+compatibility now, use 'u
+selibpqcompat=true&sslmod
+e=require'
+
+See https://www.postgresq
+l.org/docs/current/libpq-
+ssl.html for libpq SSL 
+mode definitions.
+(Use `node 
+--trace-warnings ...` to 
+show where the warning 
+was created)
+
+=== PORTAL USERS ===
+{
+  id: 3,
+  email: 'buyer@tatamotors.com',
+  role: 'BUYER',
+  company_id: 1,
+  lender_id: 1,
+  name: 'Tata Motors',
+  tier: 1
+}
+{
+  id: 4,
+  email: 'buyer@relianceindustries.com',
+  role: 'BUYER',
+  company_id: 2,
+  lender_id: 1,
+  name: 'Reliance Industries',
+  tier: 1
+}
+{
+  id: 5,
+  email: 'buyer@marutisuzuki.com',
+  role: 'BUYER',
+  company_id: 3,
+  lender_id: 1,
+  name: 'Maruti Suzuki',
+  tier: 1
+}
+{
+  id: 1,
+  email: 'lender1@hdfc.com',
+  role: 'LENDER',
+  company_id: null,
+  lender_id: 1,
+  name: null,
+  tier: null
+}
+{
+  id: 2,
+  email: 'lender2@icici.com',
+  role: 'LENDER',
+  company_id: null,
+  lender_id: 1,
+  name: null,
+  tier: null
+}
+{
+  id: 6,
+  email: 'supplier@boschindia.com',
+  role: 'SUPPLIER',
+  company_id: 4,
+  lender_id: 1,
+  name: 'Bosch India',
+  tier: 2
+}
+{
+  id: 7,
+  email: 'supplier@mothersonsumi.com',
+  role: 'SUPPLIER',
+  company_id: 5,
+  lender_id: 1,
+  name: 'Motherson Sumi',
+  tier: 2
+}
+{
+  id: 8,
+  email: 'supplier@endurancetech.com',
+  role: 'SUPPLIER',
+  company_id: 6,
+  lender_id: 1,
+  name: 'Endurance Tech',
+  tier: 2
+}
+{
+  id: 9,
+  email: 'supplier@bharatforge.com',
+  role: 'SUPPLIER',
+  company_id: 7,
+  lender_id: 1,
+  name: 'Bharat Forge',
+  tier: 2
+}
+
+=== INVOICES (with buyer/supplier names) ===
+{
+  id: 1,
+  invoice_number: 'INV-1001',
+  supplier_id: 5,
+  buyer_id: 2,
+  lender_id: 1,
+  amount: '156135.00',
+  supplier_name: 'Motherson Sumi',
+  buyer_name: 'Reliance Industries'
+}
+{
+  id: 2,
+  invoice_number: 'INV-1002',
+  supplier_id: 6,
+  buyer_id: 3,
+  lender_id: 1,
+  amount: '270353.00',
+  supplier_name: 'Endurance Tech',
+  buyer_name: 'Maruti Suzuki'
+}
+{
+  id: 3,
+  invoice_number: 'INV-1003',
+  supplier_id: 7,
+  buyer_id: 1,
+  lender_id: 1,
+  amount: '442592.00',
+  supplier_name: 'Bharat Forge',
+  buyer_name: 'Tata Motors'
+}
+{
+  id: 4,
+  invoice_number: 'INV-1004',
+  supplier_id: 4,
+  buyer_id: 2,
+  lender_id: 1,
+  amount: '516384.00',
+  supplier_name: 'Bosch India',
+  buyer_name: 'Reliance Industries'
+}
+{
+  id: 5,
+  invoice_number: 'INV-TEST-001',
+  supplier_id: 8,
+  buyer_id: 9,
+  lender_id: 3,
+  amount: '100000.00',
+  supplier_name: 'Test Supplier',
+  buyer_name: 'Test Buyer'
+}
+{
+  id: 6,
+  invoice_number: 'INV-TEST-001',
+  supplier_id: 10,
+  buyer_id: 11,
+  lender_id: 4,
+  amount: '100000.00',
+  supplier_name: 'Test Supplier',
+  buyer_name: 'Test Buyer'
+}
+{
+  id: 7,
+  invoice_number: 'INV-TEST-001',
+  supplier_id: 12,
+  buyer_id: 13,
+  lender_id: 5,
+  amount: '100000.00',
+  supplier_name: 'Test Supplier',
+  buyer_name: 'Test Buyer'
+}
+{
+  id: 8,
+  invoice_number: 'INV-TEST-001',
+  supplier_id: 14,
+  buyer_id: 15,
+  lender_id: 6,
+  amount: '100000.00',
+  supplier_name: 'Test Supplier',
+  buyer_name: 'Test Buyer'
+}
+
+=== SETTLEMENTS ===
+{ invoice_id: 1, actual_payment_amount: '156135.00' }
+{ invoice_id: 2, actual_payment_amount: '189247.1' }
+{ invoice_id: 3, actual_payment_amount: '0' }

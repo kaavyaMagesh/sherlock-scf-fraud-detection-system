@@ -1,5 +1,5 @@
 import { useKPI } from "@/hooks/use-dashboard-data";
-import { Wallet, Ban, BellRing, ShieldCheck } from "lucide-react";
+import { Wallet, Ban, BellRing, ShieldCheck, Activity } from "lucide-react";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 
 const formatCurrency = (value: number) => {
@@ -101,6 +101,26 @@ export function KpiWidgets() {
             Tier Avg Risk: T1 {Number(kpi.tier1Risk || 0).toFixed(1)} | T2 {Number(kpi.tier2Risk || 0).toFixed(1)} | T3 {Number(kpi.tier3Risk || 0).toFixed(1)}
           </div>
         )}
+      </div>
+      
+      {/* Portfolio Dilution */}
+      <div className="bg-card rounded-2xl p-6 glow-card border border-border/50 flex flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+        <div className="flex items-center justify-between mb-4 relative z-10">
+          <h3 className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Portfolio Dilution</h3>
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Activity className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+        <div className="flex items-end justify-between relative z-10">
+          <span className="text-4xl font-mono font-bold text-foreground glow-text">
+            {(Number(kpi.averagePortfolioDilution || 0) * 100).toFixed(1)}%
+          </span>
+          <div className="text-right">
+            <span className="text-xs text-muted-foreground block">Impact across</span>
+            <span className="text-xs font-bold text-primary">{kpi.dilutedSuppliersCount} suppliers</span>
+          </div>
+        </div>
       </div>
 
     </div>

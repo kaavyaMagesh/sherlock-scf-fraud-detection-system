@@ -15,8 +15,26 @@ const erpRoutes = require('./routes/erpRoutes');
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// preflightContinue: false  — cors() will fully handle OPTIONS requests itself
+// (no separate app.options route needed, avoids Express path-matching crashes)
+const corsOptions = {
+    origin: true,                    // reflect request origin (any dev host allowed)
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'x-lender-id',               // required by lenderAuth middleware
+    ],
+    credentials: true,
+    preflightContinue: false,        // respond to OPTIONS immediately, don't pass to next
+    optionsSuccessStatus: 204,       // 200 breaks some old browsers; 204 is safe
+};
+app.use(cors(corsOptions));
 app.use(express.json());
+
+
 
 // Retail APIs (Unauthenticated for prototype demo)
 app.use('/api/retail', retailRoutes);
