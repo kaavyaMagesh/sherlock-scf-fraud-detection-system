@@ -1,0 +1,1006 @@
+{
+  "metadata": {
+    "model": "KMeans (k=3) + PCA",
+    "features_used": [
+      "avg_invoice_amount",
+      "invoice_frequency_per_month",
+      "avg_days_to_deliver",
+      "num_buyers",
+      "pct_invoices_disputed",
+      "relationship_age_months",
+      "total_volume"
+    ],
+    "pca_variance_explained": 98.0,
+    "total_suppliers": 50
+  },
+  "cluster_summary": [
+    {
+      "cluster_id": 0,
+      "label": "Trusted Veteran",
+      "color": "#22c55e",
+      "risk": "Low",
+      "count": 25,
+      "avg_invoice_amount": 80000.0,
+      "avg_dispute_rate": 2.3,
+      "avg_relationship_age": 50.0,
+      "avg_num_buyers": 13.5,
+      "total_volume": 93327000.0
+    },
+    {
+      "cluster_id": 1,
+      "label": "High Risk Actor",
+      "color": "#ef4444",
+      "risk": "High",
+      "count": 10,
+      "avg_invoice_amount": 422500.0,
+      "avg_dispute_rate": 73.7,
+      "avg_relationship_age": 5.3,
+      "avg_num_buyers": 7.5,
+      "total_volume": 776000.0
+    },
+    {
+      "cluster_id": 2,
+      "label": "New Entrant",
+      "color": "#eab308",
+      "risk": "Medium",
+      "count": 15,
+      "avg_invoice_amount": 13307.0,
+      "avg_dispute_rate": 36.8,
+      "avg_relationship_age": 3.3,
+      "avg_num_buyers": 2.1,
+      "total_volume": 207950.0
+    }
+  ],
+  "suppliers": [
+    {
+      "supplier_id": "S001",
+      "supplier_name": "Tata Motors Ltd",
+      "pca_x": 1.9467,
+      "pca_y": -0.063,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 72000,
+        "invoice_frequency_per_month": 4.2,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 12,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 48,
+        "total_volume": 3456000
+      }
+    },
+    {
+      "supplier_id": "S002",
+      "supplier_name": "Reliance Industries",
+      "pca_x": 3.2109,
+      "pca_y": 0.8953,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 95000,
+        "invoice_frequency_per_month": 5.1,
+        "avg_days_to_deliver": 6,
+        "num_buyers": 18,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 60,
+        "total_volume": 5814000
+      }
+    },
+    {
+      "supplier_id": "S003",
+      "supplier_name": "Bosch India",
+      "pca_x": 1.4645,
+      "pca_y": -0.3718,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 68000,
+        "invoice_frequency_per_month": 3.9,
+        "avg_days_to_deliver": 9,
+        "num_buyers": 10,
+        "pct_invoices_disputed": 3.0,
+        "relationship_age_months": 42,
+        "total_volume": 2652000
+      }
+    },
+    {
+      "supplier_id": "S004",
+      "supplier_name": "Maruti Suzuki",
+      "pca_x": 2.5159,
+      "pca_y": 0.4007,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 88000,
+        "invoice_frequency_per_month": 4.8,
+        "avg_days_to_deliver": 7,
+        "num_buyers": 15,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 54,
+        "total_volume": 4224000
+      }
+    },
+    {
+      "supplier_id": "S005",
+      "supplier_name": "Mahindra Parts",
+      "pca_x": 1.0826,
+      "pca_y": -0.5821,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 61000,
+        "invoice_frequency_per_month": 3.5,
+        "avg_days_to_deliver": 10,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 4.0,
+        "relationship_age_months": 36,
+        "total_volume": 2135000
+      }
+    },
+    {
+      "supplier_id": "S006",
+      "supplier_name": "Hindustan Unilever",
+      "pca_x": 4.1215,
+      "pca_y": 1.5571,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 112000,
+        "invoice_frequency_per_month": 6.2,
+        "avg_days_to_deliver": 5,
+        "num_buyers": 22,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 72,
+        "total_volume": 6944000
+      }
+    },
+    {
+      "supplier_id": "S007",
+      "supplier_name": "Infosys Supplies",
+      "pca_x": 2.1764,
+      "pca_y": 0.1758,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 79000,
+        "invoice_frequency_per_month": 4.5,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 14,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 50,
+        "total_volume": 3555000
+      }
+    },
+    {
+      "supplier_id": "S008",
+      "supplier_name": "Wipro Logistics",
+      "pca_x": 2.5289,
+      "pca_y": 0.4212,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 83000,
+        "invoice_frequency_per_month": 4.7,
+        "avg_days_to_deliver": 7,
+        "num_buyers": 16,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 55,
+        "total_volume": 3901000
+      }
+    },
+    {
+      "supplier_id": "S009",
+      "supplier_name": "HDFC Procurement",
+      "pca_x": 3.2073,
+      "pca_y": 0.9565,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 98000,
+        "invoice_frequency_per_month": 5.3,
+        "avg_days_to_deliver": 6,
+        "num_buyers": 19,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 62,
+        "total_volume": 5194000
+      }
+    },
+    {
+      "supplier_id": "S010",
+      "supplier_name": "Bajaj Auto Parts",
+      "pca_x": 1.6873,
+      "pca_y": -0.1847,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 74000,
+        "invoice_frequency_per_month": 4.1,
+        "avg_days_to_deliver": 9,
+        "num_buyers": 11,
+        "pct_invoices_disputed": 3.0,
+        "relationship_age_months": 45,
+        "total_volume": 3034000
+      }
+    },
+    {
+      "supplier_id": "S011",
+      "supplier_name": "L&T Components",
+      "pca_x": 2.8346,
+      "pca_y": 0.6394,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 91000,
+        "invoice_frequency_per_month": 5.0,
+        "avg_days_to_deliver": 6,
+        "num_buyers": 17,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 58,
+        "total_volume": 4550000
+      }
+    },
+    {
+      "supplier_id": "S012",
+      "supplier_name": "Sundaram Fasteners",
+      "pca_x": 1.297,
+      "pca_y": -0.4811,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 66000,
+        "invoice_frequency_per_month": 3.8,
+        "avg_days_to_deliver": 10,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 3.0,
+        "relationship_age_months": 40,
+        "total_volume": 2508000
+      }
+    },
+    {
+      "supplier_id": "S013",
+      "supplier_name": "Ashok Leyland",
+      "pca_x": 2.0195,
+      "pca_y": 0.0445,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 78000,
+        "invoice_frequency_per_month": 4.4,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 13,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 47,
+        "total_volume": 3432000
+      }
+    },
+    {
+      "supplier_id": "S014",
+      "supplier_name": "TVS Motors Supply",
+      "pca_x": 1.4882,
+      "pca_y": -0.3543,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 69000,
+        "invoice_frequency_per_month": 3.9,
+        "avg_days_to_deliver": 9,
+        "num_buyers": 10,
+        "pct_invoices_disputed": 3.0,
+        "relationship_age_months": 43,
+        "total_volume": 2691000
+      }
+    },
+    {
+      "supplier_id": "S015",
+      "supplier_name": "Bharat Forge",
+      "pca_x": 3.6858,
+      "pca_y": 1.2129,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 105000,
+        "invoice_frequency_per_month": 5.8,
+        "avg_days_to_deliver": 5,
+        "num_buyers": 20,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 68,
+        "total_volume": 6090000
+      }
+    },
+    {
+      "supplier_id": "S016",
+      "supplier_name": "Phoenix New Venture",
+      "pca_x": -1.4782,
+      "pca_y": -1.5533,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 12000,
+        "invoice_frequency_per_month": 0.8,
+        "avg_days_to_deliver": 22,
+        "num_buyers": 2,
+        "pct_invoices_disputed": 28.0,
+        "relationship_age_months": 3,
+        "total_volume": 9600
+      }
+    },
+    {
+      "supplier_id": "S017",
+      "supplier_name": "Nexus Trade Co",
+      "pca_x": -2.0536,
+      "pca_y": -1.3584,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 8500,
+        "invoice_frequency_per_month": 0.5,
+        "avg_days_to_deliver": 30,
+        "num_buyers": 1,
+        "pct_invoices_disputed": 45.0,
+        "relationship_age_months": 2,
+        "total_volume": 4250
+      }
+    },
+    {
+      "supplier_id": "S018",
+      "supplier_name": "Rapid Invoice Ltd",
+      "pca_x": -1.3143,
+      "pca_y": -1.4521,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 15000,
+        "invoice_frequency_per_month": 1.2,
+        "avg_days_to_deliver": 18,
+        "num_buyers": 3,
+        "pct_invoices_disputed": 35.0,
+        "relationship_age_months": 4,
+        "total_volume": 18000
+      }
+    },
+    {
+      "supplier_id": "S019",
+      "supplier_name": "Fast Cash Suppliers",
+      "pca_x": -1.9838,
+      "pca_y": -1.3857,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 9800,
+        "invoice_frequency_per_month": 0.7,
+        "avg_days_to_deliver": 25,
+        "num_buyers": 1,
+        "pct_invoices_disputed": 52.0,
+        "relationship_age_months": 2,
+        "total_volume": 6860
+      }
+    },
+    {
+      "supplier_id": "S020",
+      "supplier_name": "QuickFin Traders",
+      "pca_x": -1.5858,
+      "pca_y": -1.4804,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 11000,
+        "invoice_frequency_per_month": 0.9,
+        "avg_days_to_deliver": 20,
+        "num_buyers": 2,
+        "pct_invoices_disputed": 41.0,
+        "relationship_age_months": 3,
+        "total_volume": 9900
+      }
+    },
+    {
+      "supplier_id": "S021",
+      "supplier_name": "Alpha Shell Corp",
+      "pca_x": -2.4253,
+      "pca_y": -1.1399,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 7500,
+        "invoice_frequency_per_month": 0.4,
+        "avg_days_to_deliver": 35,
+        "num_buyers": 1,
+        "pct_invoices_disputed": 60.0,
+        "relationship_age_months": 1,
+        "total_volume": 3000
+      }
+    },
+    {
+      "supplier_id": "S022",
+      "supplier_name": "Beta Trading Inc",
+      "pca_x": -1.537,
+      "pca_y": -1.438,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 13500,
+        "invoice_frequency_per_month": 1.1,
+        "avg_days_to_deliver": 22,
+        "num_buyers": 2,
+        "pct_invoices_disputed": 38.0,
+        "relationship_age_months": 4,
+        "total_volume": 14850
+      }
+    },
+    {
+      "supplier_id": "S023",
+      "supplier_name": "New Market Supplies",
+      "pca_x": -1.983,
+      "pca_y": -1.3525,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 10500,
+        "invoice_frequency_per_month": 0.8,
+        "avg_days_to_deliver": 28,
+        "num_buyers": 1,
+        "pct_invoices_disputed": 48.0,
+        "relationship_age_months": 2,
+        "total_volume": 8400
+      }
+    },
+    {
+      "supplier_id": "S024",
+      "supplier_name": "Sunrise Ventures",
+      "pca_x": -2.5994,
+      "pca_y": -1.0264,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 6800,
+        "invoice_frequency_per_month": 0.3,
+        "avg_days_to_deliver": 40,
+        "num_buyers": 1,
+        "pct_invoices_disputed": 62.0,
+        "relationship_age_months": 1,
+        "total_volume": 2040
+      }
+    },
+    {
+      "supplier_id": "S025",
+      "supplier_name": "Zeta Commerce",
+      "pca_x": -1.5572,
+      "pca_y": -1.4511,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 14000,
+        "invoice_frequency_per_month": 1.0,
+        "avg_days_to_deliver": 24,
+        "num_buyers": 2,
+        "pct_invoices_disputed": 33.0,
+        "relationship_age_months": 3,
+        "total_volume": 14000
+      }
+    },
+    {
+      "supplier_id": "S026",
+      "supplier_name": "Horizon Parts Ltd",
+      "pca_x": -2.9652,
+      "pca_y": 1.8563,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 450000,
+        "invoice_frequency_per_month": 0.2,
+        "avg_days_to_deliver": 45,
+        "num_buyers": 8,
+        "pct_invoices_disputed": 72.0,
+        "relationship_age_months": 6,
+        "total_volume": 90000
+      }
+    },
+    {
+      "supplier_id": "S027",
+      "supplier_name": "Mega Invoice Corp",
+      "pca_x": -2.7081,
+      "pca_y": 1.156,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 380000,
+        "invoice_frequency_per_month": 0.3,
+        "avg_days_to_deliver": 38,
+        "num_buyers": 6,
+        "pct_invoices_disputed": 65.0,
+        "relationship_age_months": 5,
+        "total_volume": 114000
+      }
+    },
+    {
+      "supplier_id": "S028",
+      "supplier_name": "Inflated Supplies",
+      "pca_x": -3.3513,
+      "pca_y": 2.4545,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 520000,
+        "invoice_frequency_per_month": 0.1,
+        "avg_days_to_deliver": 52,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 80.0,
+        "relationship_age_months": 4,
+        "total_volume": 52000
+      }
+    },
+    {
+      "supplier_id": "S029",
+      "supplier_name": "Ghost Goods Ltd",
+      "pca_x": -3.1069,
+      "pca_y": 1.6657,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 410000,
+        "invoice_frequency_per_month": 0.2,
+        "avg_days_to_deliver": 48,
+        "num_buyers": 7,
+        "pct_invoices_disputed": 75.0,
+        "relationship_age_months": 5,
+        "total_volume": 82000
+      }
+    },
+    {
+      "supplier_id": "S030",
+      "supplier_name": "Phantom Traders",
+      "pca_x": -3.0779,
+      "pca_y": 2.1419,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 495000,
+        "invoice_frequency_per_month": 0.2,
+        "avg_days_to_deliver": 50,
+        "num_buyers": 8,
+        "pct_invoices_disputed": 68.0,
+        "relationship_age_months": 7,
+        "total_volume": 99000
+      }
+    },
+    {
+      "supplier_id": "S031",
+      "supplier_name": "Carousel Co A",
+      "pca_x": -2.8221,
+      "pca_y": 0.9527,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 320000,
+        "invoice_frequency_per_month": 0.3,
+        "avg_days_to_deliver": 42,
+        "num_buyers": 5,
+        "pct_invoices_disputed": 71.0,
+        "relationship_age_months": 8,
+        "total_volume": 96000
+      }
+    },
+    {
+      "supplier_id": "S032",
+      "supplier_name": "Shell Entity X",
+      "pca_x": -3.3573,
+      "pca_y": 2.423,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 480000,
+        "invoice_frequency_per_month": 0.1,
+        "avg_days_to_deliver": 55,
+        "num_buyers": 10,
+        "pct_invoices_disputed": 82.0,
+        "relationship_age_months": 3,
+        "total_volume": 48000
+      }
+    },
+    {
+      "supplier_id": "S033",
+      "supplier_name": "Paper Company Ltd",
+      "pca_x": -2.9036,
+      "pca_y": 1.167,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 350000,
+        "invoice_frequency_per_month": 0.2,
+        "avg_days_to_deliver": 44,
+        "num_buyers": 6,
+        "pct_invoices_disputed": 69.0,
+        "relationship_age_months": 5,
+        "total_volume": 70000
+      }
+    },
+    {
+      "supplier_id": "S034",
+      "supplier_name": "Dubious Exports",
+      "pca_x": -3.1283,
+      "pca_y": 1.727,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 430000,
+        "invoice_frequency_per_month": 0.2,
+        "avg_days_to_deliver": 46,
+        "num_buyers": 7,
+        "pct_invoices_disputed": 77.0,
+        "relationship_age_months": 4,
+        "total_volume": 86000
+      }
+    },
+    {
+      "supplier_id": "S035",
+      "supplier_name": "Fraud Ring Supplies",
+      "pca_x": -3.063,
+      "pca_y": 1.8082,
+      "cluster_id": 1,
+      "cluster_label": "High Risk Actor",
+      "cluster_color": "#ef4444",
+      "cluster_risk": "High",
+      "features": {
+        "avg_invoice_amount": 390000,
+        "invoice_frequency_per_month": 0.1,
+        "avg_days_to_deliver": 50,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 78.0,
+        "relationship_age_months": 6,
+        "total_volume": 39000
+      }
+    },
+    {
+      "supplier_id": "S036",
+      "supplier_name": "Jain Brothers Exports",
+      "pca_x": 1.1709,
+      "pca_y": -0.5061,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 63000,
+        "invoice_frequency_per_month": 3.7,
+        "avg_days_to_deliver": 11,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 4.0,
+        "relationship_age_months": 38,
+        "total_volume": 2331000
+      }
+    },
+    {
+      "supplier_id": "S037",
+      "supplier_name": "Kamdar Industries",
+      "pca_x": 1.8905,
+      "pca_y": -0.0791,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 76000,
+        "invoice_frequency_per_month": 4.3,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 12,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 46,
+        "total_volume": 3268000
+      }
+    },
+    {
+      "supplier_id": "S038",
+      "supplier_name": "Patel Logistics",
+      "pca_x": 2.3198,
+      "pca_y": 0.2436,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 85000,
+        "invoice_frequency_per_month": 4.6,
+        "avg_days_to_deliver": 7,
+        "num_buyers": 14,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 52,
+        "total_volume": 3910000
+      }
+    },
+    {
+      "supplier_id": "S039",
+      "supplier_name": "Shah Trading Co",
+      "pca_x": 1.6142,
+      "pca_y": -0.2324,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 71000,
+        "invoice_frequency_per_month": 4.0,
+        "avg_days_to_deliver": 9,
+        "num_buyers": 11,
+        "pct_invoices_disputed": 3.0,
+        "relationship_age_months": 44,
+        "total_volume": 2840000
+      }
+    },
+    {
+      "supplier_id": "S040",
+      "supplier_name": "Agarwal Parts",
+      "pca_x": 2.6721,
+      "pca_y": 0.5162,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 89000,
+        "invoice_frequency_per_month": 4.9,
+        "avg_days_to_deliver": 7,
+        "num_buyers": 16,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 56,
+        "total_volume": 4361000
+      }
+    },
+    {
+      "supplier_id": "S041",
+      "supplier_name": "Mehta Suppliers",
+      "pca_x": 1.3066,
+      "pca_y": -0.4548,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 67000,
+        "invoice_frequency_per_month": 3.8,
+        "avg_days_to_deliver": 10,
+        "num_buyers": 9,
+        "pct_invoices_disputed": 4.0,
+        "relationship_age_months": 41,
+        "total_volume": 2546000
+      }
+    },
+    {
+      "supplier_id": "S042",
+      "supplier_name": "Sharma Components",
+      "pca_x": 3.0404,
+      "pca_y": 0.7799,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 93000,
+        "invoice_frequency_per_month": 5.2,
+        "avg_days_to_deliver": 6,
+        "num_buyers": 18,
+        "pct_invoices_disputed": 1.0,
+        "relationship_age_months": 60,
+        "total_volume": 4836000
+      }
+    },
+    {
+      "supplier_id": "S043",
+      "supplier_name": "Gupta Enterprises",
+      "pca_x": 0.9162,
+      "pca_y": -0.6808,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 58000,
+        "invoice_frequency_per_month": 3.4,
+        "avg_days_to_deliver": 11,
+        "num_buyers": 8,
+        "pct_invoices_disputed": 5.0,
+        "relationship_age_months": 35,
+        "total_volume": 1972000
+      }
+    },
+    {
+      "supplier_id": "S044",
+      "supplier_name": "Singh Autoparts",
+      "pca_x": 1.915,
+      "pca_y": -0.0611,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 77000,
+        "invoice_frequency_per_month": 4.3,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 12,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 47,
+        "total_volume": 3311000
+      }
+    },
+    {
+      "supplier_id": "S045",
+      "supplier_name": "Kumar Manufacturers",
+      "pca_x": 2.254,
+      "pca_y": 0.2262,
+      "cluster_id": 0,
+      "cluster_label": "Trusted Veteran",
+      "cluster_color": "#22c55e",
+      "cluster_risk": "Low",
+      "features": {
+        "avg_invoice_amount": 82000,
+        "invoice_frequency_per_month": 4.6,
+        "avg_days_to_deliver": 8,
+        "num_buyers": 14,
+        "pct_invoices_disputed": 2.0,
+        "relationship_age_months": 51,
+        "total_volume": 3772000
+      }
+    },
+    {
+      "supplier_id": "S046",
+      "supplier_name": "NewCo Startup",
+      "pca_x": -1.0477,
+      "pca_y": -1.5816,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 18000,
+        "invoice_frequency_per_month": 1.3,
+        "avg_days_to_deliver": 16,
+        "num_buyers": 3,
+        "pct_invoices_disputed": 22.0,
+        "relationship_age_months": 5,
+        "total_volume": 23400
+      }
+    },
+    {
+      "supplier_id": "S047",
+      "supplier_name": "Emerging Traders",
+      "pca_x": -0.825,
+      "pca_y": -1.539,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 22000,
+        "invoice_frequency_per_month": 1.5,
+        "avg_days_to_deliver": 14,
+        "num_buyers": 4,
+        "pct_invoices_disputed": 18.0,
+        "relationship_age_months": 6,
+        "total_volume": 33000
+      }
+    },
+    {
+      "supplier_id": "S048",
+      "supplier_name": "Fresh Ventures Ltd",
+      "pca_x": -1.2377,
+      "pca_y": -1.5078,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 16500,
+        "invoice_frequency_per_month": 1.1,
+        "avg_days_to_deliver": 19,
+        "num_buyers": 3,
+        "pct_invoices_disputed": 26.0,
+        "relationship_age_months": 4,
+        "total_volume": 18150
+      }
+    },
+    {
+      "supplier_id": "S049",
+      "supplier_name": "Young Suppliers Inc",
+      "pca_x": -0.9148,
+      "pca_y": -1.5227,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 20000,
+        "invoice_frequency_per_month": 1.4,
+        "avg_days_to_deliver": 15,
+        "num_buyers": 4,
+        "pct_invoices_disputed": 20.0,
+        "relationship_age_months": 5,
+        "total_volume": 28000
+      }
+    },
+    {
+      "supplier_id": "S050",
+      "supplier_name": "Novus Commerce",
+      "pca_x": -1.34,
+      "pca_y": -1.5814,
+      "cluster_id": 2,
+      "cluster_label": "New Entrant",
+      "cluster_color": "#eab308",
+      "cluster_risk": "Medium",
+      "features": {
+        "avg_invoice_amount": 14500,
+        "invoice_frequency_per_month": 1.0,
+        "avg_days_to_deliver": 21,
+        "num_buyers": 2,
+        "pct_invoices_disputed": 24.0,
+        "relationship_age_months": 4,
+        "total_volume": 14500
+      }
+    }
+  ]
+}

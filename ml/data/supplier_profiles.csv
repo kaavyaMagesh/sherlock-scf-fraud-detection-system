@@ -1,0 +1,51 @@
+supplier_id,supplier_name,avg_invoice_amount,invoice_frequency_per_month,avg_days_to_deliver,num_buyers,pct_invoices_disputed,relationship_age_months,total_volume
+S001,Tata Motors Ltd,72000,4.2,8,12,0.02,48,3456000
+S002,Reliance Industries,95000,5.1,6,18,0.01,60,5814000
+S003,Bosch India,68000,3.9,9,10,0.03,42,2652000
+S004,Maruti Suzuki,88000,4.8,7,15,0.02,54,4224000
+S005,Mahindra Parts,61000,3.5,10,9,0.04,36,2135000
+S006,Hindustan Unilever,112000,6.2,5,22,0.01,72,6944000
+S007,Infosys Supplies,79000,4.5,8,14,0.02,50,3555000
+S008,Wipro Logistics,83000,4.7,7,16,0.01,55,3901000
+S009,HDFC Procurement,98000,5.3,6,19,0.02,62,5194000
+S010,Bajaj Auto Parts,74000,4.1,9,11,0.03,45,3034000
+S011,L&T Components,91000,5.0,6,17,0.02,58,4550000
+S012,Sundaram Fasteners,66000,3.8,10,9,0.03,40,2508000
+S013,Ashok Leyland,78000,4.4,8,13,0.02,47,3432000
+S014,TVS Motors Supply,69000,3.9,9,10,0.03,43,2691000
+S015,Bharat Forge,105000,5.8,5,20,0.01,68,6090000
+S016,Phoenix New Venture,12000,0.8,22,2,0.28,3,9600
+S017,Nexus Trade Co,8500,0.5,30,1,0.45,2,4250
+S018,Rapid Invoice Ltd,15000,1.2,18,3,0.35,4,18000
+S019,Fast Cash Suppliers,9800,0.7,25,1,0.52,2,6860
+S020,QuickFin Traders,11000,0.9,20,2,0.41,3,9900
+S021,Alpha Shell Corp,7500,0.4,35,1,0.60,1,3000
+S022,Beta Trading Inc,13500,1.1,22,2,0.38,4,14850
+S023,New Market Supplies,10500,0.8,28,1,0.48,2,8400
+S024,Sunrise Ventures,6800,0.3,40,1,0.62,1,2040
+S025,Zeta Commerce,14000,1.0,24,2,0.33,3,14000
+S026,Horizon Parts Ltd,450000,0.2,45,8,0.72,6,90000
+S027,Mega Invoice Corp,380000,0.3,38,6,0.65,5,114000
+S028,Inflated Supplies,520000,0.1,52,9,0.80,4,52000
+S029,Ghost Goods Ltd,410000,0.2,48,7,0.75,5,82000
+S030,Phantom Traders,495000,0.2,50,8,0.68,7,99000
+S031,Carousel Co A,320000,0.3,42,5,0.71,8,96000
+S032,Shell Entity X,480000,0.1,55,10,0.82,3,48000
+S033,Paper Company Ltd,350000,0.2,44,6,0.69,5,70000
+S034,Dubious Exports,430000,0.2,46,7,0.77,4,86000
+S035,Fraud Ring Supplies,390000,0.1,50,9,0.78,6,39000
+S036,Jain Brothers Exports,63000,3.7,11,9,0.04,38,2331000
+S037,Kamdar Industries,76000,4.3,8,12,0.02,46,3268000
+S038,Patel Logistics,85000,4.6,7,14,0.02,52,3910000
+S039,Shah Trading Co,71000,4.0,9,11,0.03,44,2840000
+S040,Agarwal Parts,89000,4.9,7,16,0.01,56,4361000
+S041,Mehta Suppliers,67000,3.8,10,9,0.04,41,2546000
+S042,Sharma Components,93000,5.2,6,18,0.01,60,4836000
+S043,Gupta Enterprises,58000,3.4,11,8,0.05,35,1972000
+S044,Singh Autoparts,77000,4.3,8,12,0.02,47,3311000
+S045,Kumar Manufacturers,82000,4.6,8,14,0.02,51,3772000
+S046,NewCo Startup,18000,1.3,16,3,0.22,5,23400
+S047,Emerging Traders,22000,1.5,14,4,0.18,6,33000
+S048,Fresh Ventures Ltd,16500,1.1,19,3,0.26,4,18150
+S049,Young Suppliers Inc,20000,1.4,15,4,0.20,5,28000
+S050,Novus Commerce,14500,1.0,21,2,0.24,4,14500

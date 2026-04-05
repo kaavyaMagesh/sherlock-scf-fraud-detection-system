@@ -12,6 +12,7 @@ import VerificationCenterPage from "@/pages/verification-center";
 import AnomalyAlertsPage from "@/pages/anomaly-alerts";
 import VelocityMonitorPage from "@/pages/velocity-monitor";
 import SupplierProfilePage from "@/pages/supplier-profile";
+import MLClusteringPage from "@/pages/ml-clustering";
 
 
 import LoginPage from "@/pages/login";
@@ -66,6 +67,7 @@ function Router() {
           <Route path="/velocity" component={VelocityMonitorPage} />
           
           <Route path="/supplier/:id" component={SupplierProfilePage} />
+          <Route path="/ml-insights" component={MLClusteringPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
