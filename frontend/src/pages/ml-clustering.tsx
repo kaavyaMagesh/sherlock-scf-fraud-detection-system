@@ -142,7 +142,7 @@ export default function MLClusteringPage() {
   const [activeCluster, setActiveCluster] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/clustered_results.json")
+    fetch("http://localhost:3000/api/ml/clustering")
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));

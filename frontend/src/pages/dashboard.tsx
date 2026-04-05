@@ -1,7 +1,7 @@
 import { KpiWidgets } from "@/components/dashboard/kpi-widgets";
 import { UnifiedSimulator } from "@/components/demo/unified-simulator";
 import { LenderSwitcher } from "@/components/dashboard/lender-switcher";
-import { Bell, FlaskConical } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 
 export default function Dashboard() {
   return (
@@ -14,10 +14,6 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-4">
           <LenderSwitcher />
-          <button className="p-2 rounded-full bg-card border border-border/50 hover:bg-muted transition-colors relative">
-            <Bell className="w-5 h-5 text-foreground" />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card"></span>
-          </button>
         </div>
       </header>
 
