@@ -94,7 +94,7 @@ export function KpiWidgets() {
           <span className="text-4xl font-mono font-bold text-warning glow-text" style={{ textShadow: '0 0 10px rgba(234, 179, 8, 0.5)' }}>
             {kpi.alertsCount}
           </span>
-          <span className="text-sm text-muted-foreground">{trendText(kpi.highRiskGapsChange || 0)}</span>
+          <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">Alerts</span>
         </div>
         {!tierRowAllZero && (
           <div className="text-[11px] text-muted-foreground mt-2">

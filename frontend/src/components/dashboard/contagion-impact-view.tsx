@@ -56,8 +56,8 @@ export function ContagionImpactView() {
                             <Zap className="w-5 h-5 fill-destructive/20" />
                             Contagion Impact Analysis
                         </h2>
-                        <p className="text-sm text-destructive/80 mt-1">
-                            Neighbor exposure from <span className="font-mono">trade_relationships</span> (sum of <span className="font-mono">total_volume</span> per counterparty).
+                        <p className="text-sm text-destructive/80 mt-1 uppercase tracking-widest font-bold">
+                            Network Exposure Monitoring
                         </p>
                     </div>
                     <div className="text-right">
@@ -67,7 +67,7 @@ export function ContagionImpactView() {
                 </div>
 
                 <label className="flex flex-col gap-1 text-xs max-w-md">
-                    <span className="text-muted-foreground font-semibold uppercase">Root entity (from database)</span>
+                    <span className="text-muted-foreground font-semibold uppercase tracking-wider">Root Analysis Entity</span>
                     <select
                         className="bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono"
                         value={entityId ?? ""}
@@ -78,7 +78,7 @@ export function ContagionImpactView() {
                         ) : (
                             companyOptions.map((c: any) => (
                                 <option key={c.id} value={c.id}>
-                                    {c.name} (id {c.id})
+                                    {c.name}
                                 </option>
                             ))
                         )}
@@ -98,7 +98,7 @@ export function ContagionImpactView() {
                                 <>
                                     <span className="font-semibold text-foreground">{contagion.rootEntityName || `Entity ${contagion.rootEntityId}`}</span>
                                     {" · "}
-                                    {contagion.exposedEntityCount} neighbor(s), {contagion.lenderCount} lender row(s) for this portfolio
+                                    {contagion.exposedEntityCount} partner(s) detected.
                                 </>
                             )}
                         </div>
@@ -128,24 +128,24 @@ export function ContagionImpactView() {
                                     <div>
                                         <div className="text-sm font-semibold text-foreground flex items-center gap-2">
                                             {entity.name}
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">T{entity.tier}</span>
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono font-bold uppercase">Tier {entity.tier}</span>
                                         </div>
                                         <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                            Company id {entity.id}
+                                            Lender exposure detected
                                             <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-sm font-mono font-bold text-foreground">₹{entity.exposure.toLocaleString('en-IN')}</div>
-                                    <div className="text-xs font-bold text-[#ffae42]">Score {contagion?.contagionRiskScore ?? 0}</div>
+                                    <div className="text-xs font-bold text-[#ffae42] uppercase tracking-tighter">Impact Score {contagion?.contagionRiskScore ?? 0}</div>
                                 </div>
                             </div>
 
                             <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3 point-events-auto' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
                                 <div className="overflow-hidden">
                                     <div className="p-3 bg-muted/30 rounded border border-border/50 text-xs text-muted-foreground leading-relaxed">
-                                        Exposure = sum of <span className="font-mono">total_volume</span> on edges between the root entity and this counterparty (same lender).
+                                        Direct exposure based on counterparty trade volume.
                                     </div>
                                 </div>
                             </div>

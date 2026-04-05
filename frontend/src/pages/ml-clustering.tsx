@@ -189,13 +189,9 @@ export default function MLClusteringPage() {
             <BrainCircuit className="w-8 h-8 text-primary" />
             ML Supplier Risk Clustering
           </h1>
-          <p className="text-muted-foreground text-sm mt-1 font-mono uppercase tracking-widest">
-            K-Means (k=3) + PCA · {data.metadata.pca_variance_explained}% Variance Explained · {data.metadata.total_suppliers} Suppliers
+          <p className="text-muted-foreground text-sm mt-1 uppercase tracking-widest font-medium">
+            Structural grouping of trade behaviors across the portfolio.
           </p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 rounded-xl text-xs font-mono text-primary">
-          <Info className="w-4 h-4" />
-          Pre-trained model · No live DB dependency
         </div>
       </div>
 
