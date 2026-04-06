@@ -60,11 +60,8 @@ const getExplanation = async (req, res) => {
         }
 
         // ── Step 4: On-the-fly derivation (no persisted row yet) ─────────────
-        // This covers invoices that were scored before the explanation pipeline
-        // existed, or invoices that have been manually overridden without re-eval.
-        console.log(`[explain] No persisted explanation for invoice ${invoiceId} — deriving on-the-fly`);
 
-        const fraudDNA       = explainabilityService.classifyFraudDNA(breakdown);
+        const technicalDNA = explainabilityService.classifyFraudDNA(breakdown);
         const counterfactual = explainabilityService.generateCounterfactual(invoiceId, invoice.risk_score || 0, breakdown);
         const impatienceSignal = explainabilityService.detectImpatienceSignal(breakdown);
 
@@ -73,7 +70,7 @@ const getExplanation = async (req, res) => {
             factorBreakdown: breakdown,
             counterfactual:    counterfactual    || null,
             impatienceSignal:  impatienceSignal  || null,
-            fraudDNA
+            fraudDNA: technicalDNA
         });
 
     } catch (error) {

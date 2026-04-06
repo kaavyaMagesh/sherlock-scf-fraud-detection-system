@@ -72,8 +72,8 @@ function classifyFraudDNA(breakdown) {
         .map(b => b.detail)
         .slice(0, 5);
         
-    const geminiReasoningFactor = breakdown.find(b => b.factor === 'unified_ai_narrative');
-    const geminiReasoning = geminiReasoningFactor ? geminiReasoningFactor.detail : 
+    const technicalSummaryFactor = breakdown.find(b => b.factor === 'unified_ai_narrative');
+    const technicalSummary = technicalSummaryFactor ? technicalSummaryFactor.detail : 
         breakdown
             .filter(b => b.detail && geminiFactors.includes(b.factor))
             .map(b => b.detail)
@@ -224,7 +224,7 @@ function classifyFraudDNA(breakdown) {
     return { 
         typologies, 
         evidence: standardEvidence,
-        geminiReasoning: geminiReasoning || null 
+        technicalSummary: technicalSummary || null 
     };
 }
 
@@ -234,7 +234,19 @@ async function generateExplanation(invoiceId, riskResult) {
 
         const counterfactual = generateCounterfactual(invoiceId, riskScore, breakdown);
         const impatienceSignal = detectImpatienceSignal(breakdown);
+        // Extract the high-fidelity AI narrative if it exists in the breakdown (Layer 6/7)
+        const geminiFactor = breakdown.find(b => b.factor === 'unified_ai_narrative');
+        const geminiReasoning = geminiFactor ? geminiFactor.detail : null;
+
+        if (geminiReasoning) {
+            console.log(`[PERSIST] Found AI Reasoning for Invoice ${invoiceId} (Length: ${geminiReasoning.length})`);
+        } else {
+            console.warn(`[PERSIST] No AI Reasoning found in breakdown for Invoice ${invoiceId}`);
+        }
+
         const fraudDNA = classifyFraudDNA(breakdown);
+        // Ensure the DNA object in the DB includes the high-fidelity reasoning
+        if (geminiReasoning) fraudDNA.geminiReasoning = geminiReasoning;
 
         await pool.query('DELETE FROM explanations WHERE invoice_id = $1', [invoiceId]);
         await pool.query(

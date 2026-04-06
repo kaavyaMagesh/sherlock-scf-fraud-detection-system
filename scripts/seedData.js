@@ -1,8 +1,67 @@
 const pool = require('../db/index');
+const riskEngineService = require('../services/riskEngineService');
+const validationService = require('../services/validationService');
+const graphEngineService = require('../services/graphEngineService');
+const crypto = require('crypto');
 let faker;
 const loadFaker = async () => {
     const fakerModule = await import('@faker-js/faker');
     faker = fakerModule.faker;
+};
+
+const submitSeedInvoice = async (lenderId, invoiceNumber, poId, grnId, supplierId, buyerId, amount, invoiceDate, expectedPaymentDate, goodsCategory, deliveryLocation = '', paymentTerms = '') => {
+    const invDateObj = new Date(invoiceDate);
+    
+    // 1. Generate Fingerprint
+    const fingerprint = validationService.generateFingerprint(supplierId, buyerId, invoiceNumber, amount, invDateObj);
+
+    // 2. Insert Invoice
+    const invQuery = await pool.query(
+        `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category, delivery_location, payment_terms)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+        [lenderId, invoiceNumber, poId, grnId, supplierId, buyerId, amount, invDateObj, expectedPaymentDate, goodsCategory, deliveryLocation, paymentTerms]
+    );
+    const invoice = invQuery.rows[0];
+
+    // 3. Store Fingerprint
+    await pool.query(
+        'INSERT INTO invoice_fingerprints (invoice_id, lender_id, fingerprint) VALUES ($1, $2, $3) ON CONFLICT (fingerprint) DO NOTHING',
+        [invoice.id, lenderId, fingerprint]
+    );
+
+    let totalPoints = 0;
+    let finalBreakdown = [];
+
+    // 4. Duplicate Check
+    const dupCheck = await validationService.detectDuplicates(lenderId, fingerprint, supplierId, buyerId, amount, invDateObj, invoiceNumber);
+    if (dupCheck.isDuplicate) {
+        totalPoints += dupCheck.points;
+        finalBreakdown.push(...dupCheck.breakdown);
+    }
+
+    // 5. Triple Match
+    const tripleCheck = await validationService.checkTripleMatch(lenderId, poId, amount, invDateObj, supplierId, buyerId, invoiceNumber);
+    totalPoints += tripleCheck.points;
+    finalBreakdown.push(...tripleCheck.breakdown);
+
+    // 6. Risk Engine Execution (NO AI during seeding to keep it fast)
+    const riskResult = await riskEngineService.evaluateRisk(
+        lenderId,
+        invoice.id,
+        supplierId,
+        buyerId,
+        amount,
+        invDateObj,
+        expectedPaymentDate,
+        totalPoints,
+        finalBreakdown,
+        { triggerAI: false }
+    );
+
+    // 7. Update Trade Relationship Graph
+    await graphEngineService.updateEdgeMetadata(lenderId, supplierId, buyerId, amount, goodsCategory);
+
+    return riskResult;
 };
 
 const seedData = async () => {
@@ -14,11 +73,15 @@ const seedData = async () => {
         // 1. Create Lenders
         const lenders = [];
         for (let i = 1; i <= 3; i++) {
-            const res = await pool.query(
-                'INSERT INTO lenders (name) VALUES ($1) RETURNING *',
-                [`Lender Bank ${i}`]
+            const name = `Lender Bank ${i}`;
+            let res = await pool.query(
+                'INSERT INTO lenders (name) VALUES ($1) ON CONFLICT (id) DO NOTHING RETURNING *',
+                [name]
             );
-            lenders.push(res.rows[0]);
+            if (res.rows.length === 0) {
+                res = await pool.query('SELECT * FROM lenders WHERE name = $1', [name]);
+            }
+            if (res.rows.length > 0) lenders.push(res.rows[0]);
         }
         const mainLender = lenders[0].id;
         console.log("-> Lenders created");
@@ -57,26 +120,15 @@ const seedData = async () => {
             const s = faker.helpers.arrayElement(suppliers).id;
             const b = faker.helpers.arrayElement(buyers).id;
             const cat = faker.helpers.arrayElement(['Industrial Steel', 'Electronics', 'Chemicals']);
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'BLOCKED', 98, $8) RETURNING id`,
-                [
-                    mainLender,
-                    `PHANTOM-${faker.number.int({ min: 1000, max: 9999 })}`,
-                    s, b,
-                    faker.number.float({ min: 10000, max: 50000, fractionDigits: 2 }),
-                    faker.date.recent({ days: 5 }),
-                    faker.date.soon({ days: 30 }),
-                    cat
-                ]
+            await submitSeedInvoice(
+                mainLender,
+                `PHANTOM-${faker.number.int({ min: 1000, max: 9999 })}`,
+                null, null, s, b,
+                faker.number.float({ min: 10000, max: 50000, fractionDigits: 2 }),
+                faker.date.recent({ days: 5 }),
+                faker.date.soon({ days: 30 }),
+                cat
             );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 98, JSON.stringify([{ factor: 'triple_match_fail', points: 40, detail: 'No matching PO/GRN found for this invoice.' }, { factor: 'phantom_supplier_signal', points: 58, detail: 'Supplier has no historical trade relationship with this buyer.' }])
-            ]);
-            await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-                invId, mainLender, 'CRITICAL', 'triple_match_fail', 'Critical match failure: Phantom Invoice suspect'
-            ]);
         }
 
         // SCENARIO 2: 3 Duplicate Invoices across different lender IDs
@@ -89,32 +141,11 @@ const seedData = async () => {
         const fakeGrnId = null;
 
         // Insert first
-        const inv1Res = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, goods_category)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-            [lenders[0].id, 'ORIG-MULT-1', fakePoId, fakeGrnId, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 }), 'Office Supplies']
-        );
-        // Standardize fingerprint simulation (normally done via app logic, simulating here based on validationService)
-        const crypto = require('crypto');
-        const raw = `${dupSupplier}-${dupBuyer}-${Number(dupAmount).toFixed(2)}-${dupDate.toISOString().split('T')[0]}`;
-        const fingerprint = crypto.createHash('sha256').update(raw).digest('hex');
-
-        await pool.query('INSERT INTO invoice_fingerprints (invoice_id, lender_id, fingerprint) VALUES ($1, $2, $3)', [inv1Res.rows[0].id, lenders[0].id, fingerprint]);
+        await submitSeedInvoice(lenders[0].id, 'ORIG-MULT-1', fakePoId, fakeGrnId, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 }), 'Office Supplies');
 
         // Insert dupes across other lenders
         for (let i = 1; i <= 2; i++) {
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'BLOCKED', 95, 'Office Supplies') RETURNING id`,
-                [lenders[i].id, `DUPE-MULT-${i}`, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 })]
-            );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 95, JSON.stringify([{ factor: 'duplicate_fingerprint', points: 95, detail: 'Exact fingerprint match found across another lender portfolio.' }])
-            ]);
-            await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-                invId, lenders[i].id, 'CRITICAL', 'duplicate_fingerprint', 'Cross-lender duplicate detected'
-            ]);
+            await submitSeedInvoice(lenders[i].id, `DUPE-MULT-${i}`, null, null, dupSupplier, dupBuyer, dupAmount, dupDate, faker.date.soon({ days: 30 }), 'Office Supplies');
         }
 
         // SCENARIO 3: Dormant supplier (No activity 90 days) then 20 invoices in 2 hours
@@ -126,37 +157,20 @@ const seedData = async () => {
         const burstTime = new Date();
         for (let i = 0; i < 5; i++) {
             burstTime.setMinutes(burstTime.getMinutes() + 5); // 5 mins apart
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'UNDER REVIEW', 88, 'Raw Materials') RETURNING id`,
-                [mainLender, `BURST-${i}`, dormantSupplier.id, buyers[1].id, faker.number.int({ min: 5000, max: 20000 }), burstTime, faker.date.soon({ days: 30 })]
+            await submitSeedInvoice(
+                mainLender, `BURST-${i}`, null, null, dormantSupplier.id, buyers[1].id,
+                faker.number.int({ min: 5000, max: 20000 }), burstTime, faker.date.soon({ days: 30 }), 'Raw Materials'
             );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 88, JSON.stringify([{ factor: 'dormant_entity_burst', points: 40, detail: 'Supplier was inactive for 90+ days before this sudden high-volume burst.' }, { factor: 'velocity_anomaly', points: 48, detail: 'Submission rate exceeds 5 per hour.' }])
-            ]);
         }
-        await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-            null, mainLender, 'WARNING', 'dormant_entity_burst', 'Sudden burst of activity from dormant entity detected.'
-        ]);
 
         // SCENARIO 4: 2 suppliers YTD exceeding annual revenue
         console.log("-> Generating Scenario 4: Revenue Breach");
         for (let sIdx = 2; sIdx <= 3; sIdx++) {
             const greedySupplier = companies[sIdx];
             const massiveAmount = Number(greedySupplier.annual_revenue) * 1.5; // 150% of annual
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'BLOCKED', 92, 'Machinery') RETURNING id`,
-                [mainLender, `GREED-${sIdx}`, greedySupplier.id, buyers[2].id, massiveAmount, new Date(), faker.date.soon({ days: 30 })]
+            await submitSeedInvoice(
+                mainLender, `GREED-${sIdx}`, null, null, greedySupplier.id, buyers[2].id, massiveAmount, new Date(), faker.date.soon({ days: 30 }), 'Machinery'
             );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 92, JSON.stringify([{ factor: 'revenue_feasibility', points: 92, detail: 'Invoice amount represents 150% of declared annual revenue.' }])
-            ]);
-            await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-                invId, mainLender, 'CRITICAL', 'revenue_feasibility', 'Fraudulent revenue inflation suspected'
-            ]);
         }
 
         // SCENARIO 5: 10 invoices 2am-4am with sequential numbers
@@ -168,15 +182,10 @@ const seedData = async () => {
 
         for (let i = 0; i < 3; i++) {
             nightTime.setMinutes(nightTime.getMinutes() + 2); // 2 mins apart
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, $5, $6, $7, 'UNDER REVIEW', 90, 'Consumer Goods') RETURNING id`,
-                [mainLender, `BOT-${baseSeq + i}`, botSupplier.id, buyers[3].id, faker.number.int({ min: 1000, max: 5000 }), nightTime, faker.date.soon({ days: 30 })]
+            await submitSeedInvoice(
+                mainLender, `BOT-${baseSeq + i}`, null, null, botSupplier.id, buyers[3].id,
+                faker.number.int({ min: 1000, max: 5000 }), nightTime, faker.date.soon({ days: 30 }), 'Consumer Goods'
             );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 90, JSON.stringify([{ factor: 'off_hours_submission', points: 20, detail: 'Invoice submitted at 3:15 AM.' }, { factor: 'sequential_invoice_nos', points: 70, detail: 'Bot-like sequential numbering and submission frequency.' }])
-            ]);
         }
 
         // NORMAL SEED DATA (Remaining ~450+ clean/random invoices + associated PO/GRN)
@@ -203,18 +212,8 @@ const seedData = async () => {
                 [lendId, poRes.rows[0].id, amt, grnDate]
             );
 
-            await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'APPROVED', 10, 'General Trade')`,
-                [lendId, `CLEAN-${faker.number.int({ min: 100000, max: 999999 })}`, poRes.rows[0].id, grnRes.rows[0].id, supp.id, buy.id, amt, invDate, faker.date.soon({ days: 60 })]
-            );
-
-            // Update trade relationship for clean data
-            await pool.query(
-                `INSERT INTO trade_relationships (lender_id, supplier_id, buyer_id, last_seen, total_volume, invoice_count, goods_category) 
-                 VALUES ($1, $2, $3, NOW(), $4, 1, 'General Trade')
-                 ON CONFLICT (supplier_id, buyer_id, lender_id) DO UPDATE SET invoice_count = trade_relationships.invoice_count + 1`,
-                [lendId, supp.id, buy.id, amt]
+            await submitSeedInvoice(
+                lendId, `CLEAN-${faker.number.int({ min: 100000, max: 999999 })}`, poRes.rows[0].id, grnRes.rows[0].id, supp.id, buy.id, amt, invDate, faker.date.soon({ days: 60 }), 'General Trade'
             );
             cleanCount++;
         }
@@ -228,24 +227,9 @@ const seedData = async () => {
 
         const trades = [[compA, compB], [compB, compC], [compC, compA]];
         for (const [s, b] of trades) {
-            await pool.query(
-                `INSERT INTO trade_relationships (lender_id, supplier_id, buyer_id, last_seen, total_volume, invoice_count, goods_category) 
-                 VALUES ($1, $2, $3, NOW(), 50000, 1, $4)
-                 ON CONFLICT (supplier_id, buyer_id, lender_id) DO NOTHING`,
-                [mainLender, s, b, cat]
+            await submitSeedInvoice(
+                mainLender, `CYCLE-${s}-${b}`, null, null, s, b, 50000, new Date(), new Date(), cat
             );
-            const res = await pool.query(
-                `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category)
-                 VALUES ($1, $2, null, null, $3, $4, 50000, NOW(), NOW(), 'BLOCKED', 99, $5) RETURNING id`,
-                [mainLender, `CYCLE-${s}-${b}`, s, b, cat]
-            );
-            const invId = res.rows[0].id;
-            await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-                invId, 99, JSON.stringify([{ factor: 'carousel_trade_detected', points: 99, detail: 'Circular economy detected: Supplier/Buyer part of a closed cycle.' }])
-            ]);
-            await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-                invId, mainLender, 'CRITICAL', 'carousel_trade_detected', 'Carousel trade network loop detected'
-            ]);
         }
 
         // SCENARIO 7: Cascade Over-financing
@@ -270,8 +254,7 @@ const seedData = async () => {
 
         // SCENARIO 8: Layer 6 — AI / Semantic Layer Anomalies
         console.log("-> Generating Scenario 8: Layer 6 AI / Semantic Fraud");
-        
-        // 8a. Goods Description Mismatch (Feature 45)
+                // 8a. Goods Description Mismatch (Feature 45)
         const mismatchSupp = suppliers[4].id;
         const mismatchBuy = buyers[3].id;
         const mismatchInvId = `MISMATCH-${faker.number.int({ min: 100, max: 998 })}`;
@@ -282,39 +265,21 @@ const seedData = async () => {
             [mainLender, mismatchBuy, mismatchSupp, mismatchAmt * 1.05]
         );
         
-        const misInvRes = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category, delivery_location, payment_terms)
-             VALUES ($1, $2, $3, null, $4, $5, $6, NOW(), NOW(), 'REVIEW', 65, 'Industrial Scrap Metal / Mixed Waste', 'Port of Singapore', 'Net 30') RETURNING id`,
-            [mainLender, mismatchInvId, misPoRes.rows[0].id, mismatchSupp, mismatchBuy, mismatchAmt]
+        await submitSeedInvoice(
+            mainLender, mismatchInvId, misPoRes.rows[0].id, null, mismatchSupp, mismatchBuy, mismatchAmt, new Date(), new Date(), 
+            'Industrial Scrap Metal / Mixed Waste', 'Port of Singapore', 'Net 30'
         );
-        const misId = misInvRes.rows[0].id;
-        await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-            misId, 65, JSON.stringify([{ factor: 'semantic_mismatch', points: 35, detail: 'Critical discrepancy: PO requests High-grade Steel, but Invoice specifies Scrap/Waste.' }])
-        ]);
-        await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-            misId, mainLender, 'HIGH', 'semantic_mismatch', 'Economic substitution detected: High-value steel replaced by scrap.'
-        ]);
 
         // 8b. Geographical & Timeline Anomaly (Layer 6 Addition)
         const geoSupp = suppliers[0].id;
         const geoBuy = buyers[1].id;
         const geoInvId = `GEO-TIME-${faker.number.int({ min: 100, max: 998 })}`;
         
-        const geoInvRes = await pool.query(
-            `INSERT INTO invoices (lender_id, invoice_number, po_id, grn_id, supplier_id, buyer_id, amount, invoice_date, expected_payment_date, status, risk_score, goods_category, delivery_location, payment_terms)
-             VALUES ($1, $2, null, null, $3, $4, 850000, NOW(), NOW(), 'REVIEW', 75, 'Aviation Fuel (Jet A-1)', 'Floor 42, Luxury Residential Tower, Mumbai Central', 'Immediate Net-1 (1 Day)') RETURNING id`,
-            [mainLender, geoInvId, geoSupp, geoBuy]
+        await submitSeedInvoice(
+            mainLender, geoInvId, null, null, geoSupp, geoBuy, 850000, new Date(), new Date(), 
+            'Aviation Fuel (Jet A-1)', 'Floor 42, Luxury Residential Tower, Mumbai Central', 'Immediate Net-1 (1 Day)'
         );
-        const gId = geoInvRes.rows[0].id;
-        await pool.query('INSERT INTO risk_score_audits (invoice_id, score, breakdown) VALUES ($1, $2, $3)', [
-            gId, 75, JSON.stringify([
-                { factor: 'geographical_anomaly', points: 25, detail: 'Fuel delivery to a high-rise residential building is logistically impossible.' },
-                { factor: 'payment_timeline_anomaly', points: 20, detail: 'Net-1 payment terms for $850k jet fuel are outside standard refinery trade norms.' }
-            ])
-        ]);
-        await pool.query('INSERT INTO alerts (invoice_id, lender_id, severity, fraud_rule, message) VALUES ($1, $2, $3, $4, $5)', [
-            gId, mainLender, 'HIGH', 'geographical_anomaly', 'Logistics/Location plausibility failure (Layer 6 Signal)'
-        ]);
+
 
         await pool.query('COMMIT');
         console.log(`Seed Data Generation Complete! Generated explicit fraud patterns + ${cleanCount} clean records.`);

@@ -1,4 +1,6 @@
 import { Fingerprint, RefreshCcw, ShieldAlert, Info, Binary } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -22,10 +24,7 @@ interface FraudDnaProps {
         }>;
         evidence: string[];
         geminiReasoning?: string;
-        // Legacy fields for compatibility if they still exist in some database records
-        typology?: string;
-        confidence?: number;
-        action?: string;
+        technicalSummary?: string;
     } | null;
     isLoading?: boolean;
     /** Set when the explain API call returns an error. */
@@ -37,6 +36,8 @@ interface FraudDnaProps {
     impatienceSignal?: string | null;
     /** Set when the user picked a queue row (even before detail fetch completes). */
     hasSelection?: boolean;
+    /** The numeric database ID of the invoice to trigger AI on */
+    invoiceId?: number | string | null;
 }
 
 function factorPoints(b: BreakdownItem): number {
@@ -47,22 +48,18 @@ function factorPoints(b: BreakdownItem): number {
 }
 
 export function FraudDnaCard({ dna, isLoading, isError, error, breakdown, impatienceSignal, hasSelection = false }: FraudDnaProps) {
+    const { toast } = useToast();
     const factorRows =
         breakdown?.filter((b) => b.factor && b.factor !== "centrality_multiplier").slice(0, 100) ?? [];
     const maxPts = Math.max(1, ...factorRows.map(factorPoints));
 
-    // Handle both new array-based typologies and legacy single-object typology
-    const typologies = dna?.typologies || (dna?.typology ? [{
-        label: dna.typology,
-        confidence: dna.confidence || 0,
-        action: dna.action || "",
-        isPrimary: true
-    }] : [{
+    // Use the new array-based typologies from the backend
+    const typologies = dna?.typologies || [{
         label: "UNKNOWN PATTERN",
         confidence: 0,
-        action: "",
+        action: "No pattern detected",
         isPrimary: true
-    }]);
+    }];
 
     const primary = typologies.find((t: any) => t.isPrimary) || typologies[0];
     const evidenceTrail = dna?.evidence || [];
@@ -179,17 +176,7 @@ export function FraudDnaCard({ dna, isLoading, isError, error, breakdown, impati
                                 <div className="text-[10px] text-muted-foreground italic font-mono">No specific DNA markers identified.</div>
                             )}
 
-                            {dna?.geminiReasoning && (
-                                <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5">
-                                    <div className="text-[9px] font-bold text-primary uppercase mb-1 flex items-center gap-1.5">
-                                        <Binary className="w-3 h-3" />
-                                        AI Reasoning
-                                    </div>
-                                    <div className="text-[10px] text-foreground font-medium leading-relaxed italic">
-                                        "{dna.geminiReasoning}"
-                                    </div>
-                                </div>
-                            )}
+
                         </div>
 
                         {factorRows.length > 0 && (

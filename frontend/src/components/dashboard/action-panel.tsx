@@ -38,8 +38,8 @@ export function ActionPanel({ selectedInvoiceId, defaultAmount }: ActionPanelPro
         
         const token = localStorage.getItem('token');
         const [invRes, auditRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } }),
-          fetch(`http://localhost:3000/api/invoices/${selectedInvoiceId}/audits`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } })
+          fetch(`/api/invoices/${selectedInvoiceId}`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } }),
+          fetch(`/api/invoices/${selectedInvoiceId}/audits`, { headers: { 'x-lender-id': lenderId, 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (invRes.ok && auditRes.ok) {
@@ -80,8 +80,8 @@ export function ActionPanel({ selectedInvoiceId, defaultAmount }: ActionPanelPro
 
     try {
       const endpoint = type === 'override' 
-        ? `http://localhost:3000/api/invoices/${selectedInvoiceId}/override` 
-        : `http://localhost:3000/api/invoices/${selectedInvoiceId}/disburse`;
+        ? `/api/invoices/${selectedInvoiceId}/override` 
+        : `/api/invoices/${selectedInvoiceId}/disburse`;
       
       const token = localStorage.getItem('token');
       const response = await fetch(endpoint, {

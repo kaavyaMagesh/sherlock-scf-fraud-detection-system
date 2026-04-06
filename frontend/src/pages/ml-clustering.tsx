@@ -142,10 +142,16 @@ export default function MLClusteringPage() {
   const [activeCluster, setActiveCluster] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/ml/clustering")
-      .then((r) => r.json())
+    fetch("/api/ml/clustering")
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch clustering results');
+        return r.json();
+      })
       .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch((err) => { 
+        console.error("ML Clustering Fetch Error:", err);
+        setLoading(false); 
+      });
   }, []);
 
   const displayedSuppliers = activeCluster !== null

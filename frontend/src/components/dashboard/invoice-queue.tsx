@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { useInvoiceQueue, useInvoiceDetail, useInvoiceAudits, useReEvaluateInvoice } from "@/hooks/use-dashboard-data";
-import { FileText, ArrowUpRight, Search, X, ShieldAlert, ShieldCheck, CheckCircle, AlertTriangle, Info, RefreshCw, History, ChevronRight, ExternalLink } from "lucide-react";
+import { useInvoiceQueue, useInvoiceDetail, useInvoiceAudits, useTriggerAIReasoning } from "@/hooks/use-dashboard-data";
+import { FileText, ArrowUpRight, Search, X, ShieldAlert, ShieldCheck, CheckCircle, AlertTriangle, Info, RefreshCw, History, ChevronRight, ExternalLink, Sparkles } from "lucide-react";
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -22,7 +22,7 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
 
     const { data: details, isLoading: isLoadingDetails, error } = useInvoiceDetail(selectedDbId ? String(selectedDbId) : null);
     const { data: audits, isLoading: isLoadingAudits } = useInvoiceAudits(selectedDbId ? String(selectedDbId) : null);
-    const reEvaluate = useReEvaluateInvoice();
+    const triggerAI = useTriggerAIReasoning();
 
     const handleSelect = (id: string, dbId: number) => {
         setSelectedId(id);
@@ -32,14 +32,14 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
         if (onSelectInvoice) onSelectInvoice(dbId);
     };
 
-    const handleReEvaluate = async (e: React.MouseEvent) => {
+    const handleTriggerAI = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (selectedDbId) {
             setRecalcError(null);
             try {
-                await reEvaluate.mutateAsync(String(selectedDbId));
+                await triggerAI.mutateAsync(String(selectedDbId));
             } catch (err) {
-                setRecalcError(err instanceof Error ? err.message : 'Recalculation failed');
+                setRecalcError(err instanceof Error ? err.message : 'AI Analysis failed');
             }
         }
     };
@@ -153,12 +153,12 @@ export function InvoiceQueue({ onSelectInvoice, raw = false }: { onSelectInvoice
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={handleReEvaluate}
-                                disabled={reEvaluate.isPending}
-                                className={`p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all ${reEvaluate.isPending ? 'animate-spin text-primary' : ''}`}
-                                title="Trigger Recalculation"
+                                onClick={handleTriggerAI}
+                                disabled={triggerAI.isPending}
+                                className={`p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all ${triggerAI.isPending ? 'animate-pulse text-amber-500' : ''}`}
+                                title="Run AI Forensic Analysis (Gemini)"
                             >
-                                <RefreshCw className="w-4 h-4" />
+                                <Sparkles className={`w-4 h-4 ${triggerAI.isPending ? 'fill-amber-500' : ''}`} />
                             </button>
                             <button
                                 onClick={() => setShowHistory(!showHistory)}

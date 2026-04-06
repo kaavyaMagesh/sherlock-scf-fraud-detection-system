@@ -52,7 +52,8 @@ async function main() {
             invoice.invoice_date,
             invoice.expected_payment_date,
             0, // Start with 0 base points to isolate semantic impact
-            []
+            [],
+            { triggerAI: true }
         );
 
         console.log("\n--- Analysis Results ---");

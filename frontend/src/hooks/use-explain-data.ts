@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 const getHeaders = (lenderId: string) => ({
   'Content-Type': 'application/json',
@@ -12,7 +12,7 @@ export function useExplainData(invoiceId: string | number | null) {
   const lenderId = localStorage.getItem('sherlock-lender-id') || '1';
 
   return useQuery({
-    queryKey: ["explain-data", invoiceId, lenderId],
+    queryKey: ["explain-data", invoiceId ? String(invoiceId) : null, lenderId],
     queryFn: async () => {
       if (!invoiceId) return null;
       const res = await fetch(`${API_BASE}/explain/${invoiceId}`, { headers: getHeaders(lenderId) });

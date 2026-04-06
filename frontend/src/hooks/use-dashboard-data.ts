@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
@@ -263,28 +263,26 @@ export function useInvoiceAudits(id: string | null) {
   });
 }
 
-export function useReEvaluateInvoice() {
+export function useTriggerAIReasoning() {
   const queryClient = useQueryClient();
   const lenderId = localStorage.getItem('sherlock-lender-id') || '4';
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_BASE}/invoices/${id}/re-evaluate`, {
+      const res = await fetch(`${API_BASE}/invoices/${id}/trigger-ai`, {
         method: 'POST',
         headers: getHeaders(),
       });
-      if (!res.ok) throw new Error('Failed to re-evaluate');
+      if (!res.ok) throw new Error('Failed to trigger AI reasoning');
       return await res.json();
     },
     onSuccess: (_, id) => {
       // Precise invalidation so the currently open invoice drawer refetches immediately.
-      queryClient.invalidateQueries({ queryKey: ["invoice-detail", id, lenderId] });
-      queryClient.invalidateQueries({ queryKey: ["invoice-audits", id, lenderId] });
       queryClient.invalidateQueries({ queryKey: ["invoice-queue", lenderId] });
+      queryClient.invalidateQueries({ queryKey: ["explain-data", id, lenderId] });
       queryClient.invalidateQueries({ queryKey: ["kpi", lenderId] });
     },
     onError: (err) => {
-      // Keep it simple: UI component will also read from console.
-      console.error('Re-evaluate invoice failed:', err);
+      console.error('Trigger AI reasoning failed:', err);
     }
   });
 }

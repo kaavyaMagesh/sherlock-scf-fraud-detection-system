@@ -52,7 +52,7 @@ export default function VerificationCenterPage() {
                             isLoading={isLoading}
                             isError={isExplainError}
                             error={explainError instanceof Error ? explainError : null}
-                            breakdown={explainData?.factorBreakdown}
+                            breakdown={explainData?.factorBreakdown || details?.breakdown}
                             impatienceSignal={explainData?.impatienceSignal}
                             hasSelection={!!selectedId}
                         />
@@ -62,9 +62,11 @@ export default function VerificationCenterPage() {
                     <ExpandableWrapper>
                         <SemanticComparison
                             data={details?.semanticData}
-                            isLoading={isLoadingDetail}
-                            breakdown={details?.breakdown}
+                            dna={explainData?.fraudDNA}
+                            isLoading={isLoading}
+                            breakdown={explainData?.factorBreakdown || details?.breakdown}
                             hasSelection={!!selectedId}
+                            invoiceId={selectedDbId}
                         />
                     </ExpandableWrapper>
                 </div>

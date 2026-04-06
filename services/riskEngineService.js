@@ -23,6 +23,7 @@ const FRAUD_RULES = [
     { id: 'geographical_anomaly', points: 25, description: 'Unlikely delivery location for cargo type' },
     { id: 'payment_timeline_anomaly', points: 20, description: 'Payment terms outside industry norms' },
     { id: 'invoice_disputed', points: 50, description: 'Formal buyer dispute raised on invoice' },
+    { id: 'unified_ai_narrative', points: 0, description: 'High-fidelity Gemini forensic narrative' },
 ];
 
 const graphEngineService = require('./graphEngineService');
@@ -59,7 +60,8 @@ const FACTOR_WEIGHTS = {
     templated_invoices: 0.65,
     geographical_anomaly: 0.75,
     payment_timeline_anomaly: 0.5,
-    invoice_disputed: 1.0
+    invoice_disputed: 1.0,
+    unified_ai_narrative: 0.0
 };
 
 let auditSchemaInitPromise = null;
@@ -84,9 +86,10 @@ const computeCompositeScore = (breakdown) => {
     return Math.max(0, Math.min(100, Math.round(weightedScore)));
 };
 
-const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, invoiceDate, expectedPaymentDate, basePoints, baseBreakdown) => {
-    let totalScore = basePoints || 0;
-    const finalBreakdown = [...(baseBreakdown || [])];
+const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, invoiceDate, expectedPaymentDate, basePoints = 0, baseBreakdown = [], options = {}) => {
+    const { triggerAI = false } = options;
+    let totalScore = basePoints;
+    const finalBreakdown = [...baseBreakdown];
     const amountNum = Number(amount);
     const invDateObj = new Date(invoiceDate);
 
@@ -339,7 +342,9 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
 
     const docData = docsQuery.rows[0];
 
-    if (docData) {
+    // Guard: Only run AI Semantic Verification if requested.
+    // Deep forensic scan runs even if documents are missing (missing PO/GRN IS a fraud signal!)
+    if (triggerAI && docData) {
         // --- LAYER 6: UNIFIED SEMANTIC ANALYSIS (SINGLE-SHOT) ---
         const historyQuery = `SELECT goods_category FROM invoices WHERE supplier_id = $1 ORDER BY id DESC LIMIT 5`;
         const historyRes = await pool.query(historyQuery, [supplierId]);
@@ -459,12 +464,14 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
         manualOverrideApplied: hasManualOverride
     };
 
-    // Ensure DNA/explanations are persisted before returning,
-    // so the Verification Center drawer refresh shows the updated Fraud DNA immediately.
-    try {
-        await explainabilityService.generateExplanation(invoiceId, result);
-    } catch (err) {
-        console.error('Explanation save failed:', err);
+    // Only generate deep AI explanations/DNA if requested.
+    // This saves Gemini tokens on every automated recalculation.
+    if (triggerAI) {
+        try {
+            await explainabilityService.generateExplanation(invoiceId, result);
+        } catch (err) {
+            console.error('Explanation save failed:', err);
+        }
     }
 
     return result;

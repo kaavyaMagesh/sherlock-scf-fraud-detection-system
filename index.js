@@ -53,10 +53,24 @@ app.use('/api/explain', explainRoutes);
 app.use('/api/identity', require('./routes/identityRoutes'));
 
 const websocketService = require('./services/websocketService');
+const pool = require('./db/index');
 
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+async function start() {
+    try {
+        // Simple probe to ensure DNS and Auth are valid
+        await pool.query('SELECT 1');
+        console.log('✅ Database connected (Neon)');
 
-websocketService.init(server);
+        const PORT = process.env.PORT || 3000;
+        const server = app.listen(PORT, () => {
+            console.log(`🚀 Server is running on port ${PORT}`);
+            websocketService.init(server);
+        });
+    } catch (err) {
+        console.error('❌ FATAL: Database connection failed. Check your internet/DNS.');
+        console.error(err.message);
+        process.exit(1);
+    }
+}
+
+start();

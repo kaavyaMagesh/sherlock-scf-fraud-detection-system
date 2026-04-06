@@ -75,7 +75,7 @@ const submitInvoice = async (req, res) => {
         totalPoints += tripleCheck.points;
         finalBreakdown.push(...tripleCheck.breakdown);
 
-        // 6. Complete Risk Engine Execution
+        // 6. Complete Risk Engine Execution (Default: NO AI/Gemini for speed)
         const riskResult = await riskEngineService.evaluateRisk(
             lenderId,
             invoice.id,
@@ -85,7 +85,8 @@ const submitInvoice = async (req, res) => {
             invoiceDate,
             expected_payment_date,
             totalPoints,
-            finalBreakdown
+            finalBreakdown,
+            { triggerAI: false }
         );
 
         // 7. Update Trade Relationship Graph (Fire for ALL invoices)
@@ -108,8 +109,8 @@ const submitInvoice = async (req, res) => {
                     `SELECT id, supplier_id, buyer_id, lender_id,
                             amount, invoice_date, expected_payment_date
                      FROM invoices
-                     WHERE (supplier_id = $1 OR buyer_id = $2)
-                       AND status = 'PENDING' AND id != $3`,
+                     WHERE (supplier_id IN ($1, $2) OR buyer_id IN ($1, $2))
+                       AND status IN ('PENDING', 'APPROVED') AND id != $3`,
                     [supplier_id, buyer_id, invoice.id]
                 );
                 for (const row of neighbors.rows) {
@@ -318,10 +319,11 @@ const manualOverride = async (req, res) => {
     }
 };
 
-const reEvaluateInvoice = async (req, res) => {
+const triggerAIExplainer = async (req, res) => {
     try {
         const { id } = req.params;
         const lenderId = req.lenderId;
+        console.log(`[TRIGGER-AI] Incoming request for Invoice ID: ${id}, Lender: ${lenderId}`);
 
         const invQuery = await pool.query('SELECT * FROM invoices WHERE id = $1 AND lender_id = $2', [id, lenderId]);
         if (invQuery.rows.length === 0) {
@@ -329,44 +331,40 @@ const reEvaluateInvoice = async (req, res) => {
         }
         const invoice = invQuery.rows[0];
 
-        const fingerprint = validationService.generateFingerprint(
+        // Fetch current breakdown to avoid losing deterministic flags
+        const auditQuery = await pool.query('SELECT breakdown FROM risk_score_audits WHERE invoice_id = $1 ORDER BY version DESC LIMIT 1', [id]);
+        let baseBreakdown = auditQuery.rows.length > 0 ? auditQuery.rows[0].breakdown : [];
+        if (typeof baseBreakdown === 'string') baseBreakdown = JSON.parse(baseBreakdown);
+
+        console.log(`[AI-SCAN] Starting Forensic & Semantic Audit for Invoice ${id}...`);
+        // Run FULL risk engine WITH AI Layer 6 & Layer 7
+        const result = await riskEngineService.evaluateRisk(
+            lenderId,
+            invoice.id,
             invoice.supplier_id,
             invoice.buyer_id,
-            invoice.invoice_number,
             invoice.amount,
-            invoice.invoice_date
+            invoice.invoice_date,
+            invoice.expected_payment_date,
+            0, // We reset score for a clean re-calc
+            [],
+            { triggerAI: true }
         );
 
-        let totalPoints = 0;
-        let finalBreakdown = [];
+        console.log(`[AI-SCAN] Forensic Audit complete for Invoice ${id}.`);
 
-        const dupCheck = await validationService.detectDuplicates(
-            lenderId, fingerprint, invoice.supplier_id, invoice.buyer_id, invoice.amount, invoice.invoice_date, invoice.invoice_number, invoice.id
-        );
-        if (dupCheck.isDuplicate) {
-            totalPoints += dupCheck.points;
-            finalBreakdown.push(...dupCheck.breakdown);
-        }
-
-        const tripleCheck = await validationService.checkTripleMatch(
-            lenderId, invoice.po_id, invoice.amount, invoice.invoice_date, invoice.supplier_id, invoice.buyer_id, invoice.invoice_number
-        );
-        totalPoints += tripleCheck.points;
-        finalBreakdown.push(...tripleCheck.breakdown);
-
-        const riskResult = await riskEngineService.evaluateRisk(
-            lenderId, invoice.id, invoice.supplier_id, invoice.buyer_id, invoice.amount, invoice.invoice_date, invoice.expected_payment_date, totalPoints, finalBreakdown
-        );
+        // CRITICAL: Persist the new AI reasoning to the Layer 7 explanations table
+        await explainabilityService.generateExplanation(Number(id), result);
 
         res.json({
-            message: 'Invoice re-evaluated successfully',
-            status: riskResult.status,
-            riskScore: riskResult.riskScore,
-            breakdown: riskResult.breakdown
+            message: 'AI Reasoning and Forensic DNA generated successfully',
+            status: result.status,
+            riskScore: result.riskScore,
+            breakdown: result.breakdown
         });
     } catch (error) {
-        console.error('Error re-evaluating invoice:', error);
-        res.status(500).json({ error: 'Failed to re-evaluate invoice' });
+        console.error('Error triggering AI reasoning:', error);
+        res.status(500).json({ error: 'Failed to trigger AI reasoning' });
     }
 };
 
@@ -397,6 +395,6 @@ module.exports = {
     getInvoiceDetails,
     preDisbursementGate,
     manualOverride,
-    reEvaluateInvoice,
+    triggerAIExplainer,
     getInvoiceAudits
 };

@@ -182,7 +182,15 @@ const runUnifiedSemanticAnalysis = async (invoiceId, supplier, invoice, po, grn,
         return JSON.parse(jsonBlock ? jsonBlock[0] : trimmed);
     } catch (e) {
         console.error('Unified analysis parse failed:', e);
-        return null;
+        // Return a safe fallback object so the forensic narrative can show the error
+        return {
+            consistency: { isConsistent: true, reason: "Analysis Parse Error", points: 0 },
+            geography: { isPlausible: true, reason: "Analysis Parse Error", points: 0 },
+            timeline: { isNormal: true, reason: "Analysis Parse Error", points: 0 },
+            vagueness: { isVague: false, reason: "Analysis Parse Error", points: 0 },
+            similarity: { isSuspicious: false, reason: "Analysis Parse Error", points: 0 },
+            forensicNarrative: `AI Scan Error: Could not parse Gemini response. Technical logs show: ${e.message}`
+        };
     }
 };
 

@@ -1,4 +1,7 @@
 const pool = require('../db/index');
+const riskEngineService = require('../services/riskEngineService');
+const validationService = require('../services/validationService');
+const graphEngineService = require('../services/graphEngineService');
 
 async function seedSemanticFraud() {
     try {
@@ -40,6 +43,15 @@ async function seedSemanticFraud() {
         `, [lenderId, invoiceNumber, poId, supplier.id, buyer.id]);
 
         const invoiceId = invRes.rows[0].id;
+        const invoiceDate = new Date();
+
+        // 4. Pass through Risk Engine (Deterministic only during seed)
+        const fingerprint = validationService.generateFingerprint(supplier.id, buyer.id, invoiceNumber, 750000.00, invoiceDate);
+        await pool.query('INSERT INTO invoice_fingerprints (invoice_id, lender_id, fingerprint) VALUES ($1, $2, $3)', [invoiceId, lenderId, fingerprint]);
+
+        await riskEngineService.evaluateRisk(
+            lenderId, invoiceId, supplier.id, buyer.id, 750000.00, invoiceDate, new Date(Date.now() + 86400000), 0, [], { triggerAI: false }
+        );
 
         console.log("\nSuccess!");
         console.log(`Invoice ID: ${invoiceId}`);

@@ -1,4 +1,7 @@
-import { FileText, Cpu, AlertTriangle, RefreshCcw, MapPin, Clock, PackageSearch, Binary, Globe, Activity } from "lucide-react";
+import { FileText, Cpu, AlertTriangle, RefreshCcw, MapPin, Clock, PackageSearch, Binary, Globe, Activity, Sparkles } from "lucide-react";
+import { useTriggerAIReasoning } from "@/hooks/use-dashboard-data";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface SemanticComparisonProps {
     data?: {
@@ -10,13 +13,37 @@ interface SemanticComparisonProps {
         invoiceTerms?: string;
         poTerms?: string;
     } | null;
+    dna?: {
+        geminiReasoning?: string;
+    } | null;
     isLoading?: boolean;
     breakdown?: any[];
     /** When false, show “select an invoice” empty state */
     hasSelection?: boolean;
+    /** The numeric database ID of the invoice to trigger AI on */
+    invoiceId?: number | string | null;
 }
 
-export function SemanticComparison({ data, isLoading, breakdown, hasSelection = false }: SemanticComparisonProps) {
+export function SemanticComparison({ data, dna, isLoading, breakdown, hasSelection = false, invoiceId }: SemanticComparisonProps) {
+    const { toast } = useToast();
+    const triggerAI = useTriggerAIReasoning();
+
+    const handleTriggerAI = async () => {
+        if (!invoiceId) return;
+        try {
+            await triggerAI.mutateAsync(String(invoiceId));
+            toast({
+                title: "Semantic Scan Triggered",
+                description: "Gemini is now cross-referencing PO/GRN and Invoice semantics.",
+            });
+        } catch (err) {
+            toast({
+                title: "Scan Failed",
+                description: err instanceof Error ? err.message : "Could not reach AI engine.",
+                variant: "destructive",
+            });
+        }
+    };
     const semanticMismatch = breakdown?.find(
         (b) =>
             b.factor === "semantic_mismatch" ||
@@ -48,30 +75,49 @@ export function SemanticComparison({ data, isLoading, breakdown, hasSelection = 
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">PO / invoice / GRN text used in the risk engine semantic layer</p>
                 </div>
-                {isLoading ? (
-                    <RefreshCcw className="w-4 h-4 text-warning animate-spin" />
-                ) : semanticMismatch ? (
-                    <div className="flex gap-2">
-                        {goodsMismatch && (
-                             <div className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold rounded-md flex items-center gap-1.5 animate-pulse">
-                                <PackageSearch className="w-3 h-3" /> Mismatch
+                <div className="flex items-center gap-3 ml-auto">
+                    {hasSelection && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleTriggerAI}
+                            disabled={triggerAI.isPending || isLoading}
+                            className="h-8 gap-2 border-warning/30 hover:bg-warning/10 text-warning hover:text-warning transition-all"
+                        >
+                            {triggerAI.isPending ? (
+                                <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <Sparkles className="w-3.5 h-3.5" />
+                            )}
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Trigger AI</span>
+                        </Button>
+                    )}
+                    
+                    {isLoading && !triggerAI.isPending ? (
+                        <RefreshCcw className="w-4 h-4 text-warning animate-spin" />
+                    ) : semanticMismatch ? (
+                        <div className="flex gap-2">
+                            {goodsMismatch && (
+                                 <div className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold rounded-md flex items-center gap-1.5 animate-pulse">
+                                    <PackageSearch className="w-3 h-3" /> Mismatch
+                                </div>
+                            )}
+                            {techAnomaly && (
+                                 <div className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold rounded-md flex items-center gap-1.5">
+                                    <Binary className="w-3 h-3" /> Tech Scan
+                                </div>
+                            )}
+                            <div className="px-3 py-1 bg-warning/10 border border-warning/20 text-warning text-xs font-bold rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                                <AlertTriangle className="w-3 h-3" />
+                                Flagged
                             </div>
-                        )}
-                        {techAnomaly && (
-                             <div className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold rounded-md flex items-center gap-1.5">
-                                <Binary className="w-3 h-3" /> Tech Scan
-                            </div>
-                        )}
-                        <div className="px-3 py-1 bg-warning/10 border border-warning/20 text-warning text-xs font-bold rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                            <AlertTriangle className="w-3 h-3" />
-                            Flagged
                         </div>
-                    </div>
-                ) : hasSelection && !isEmptyDoc ? (
-                    <div className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-full flex items-center gap-2">
-                        <Activity className="w-3 h-3" /> Clean Signal
-                    </div>
-                ) : null}
+                    ) : hasSelection && !isEmptyDoc ? (
+                        <div className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-full flex items-center gap-2">
+                            <Activity className="w-3 h-3" /> Clean Signal
+                        </div>
+                    ) : null}
+                </div>
             </div>
 
             {!hasSelection ? (
@@ -183,6 +229,18 @@ export function SemanticComparison({ data, isLoading, breakdown, hasSelection = 
                     "Choose an invoice to inspect stored document text."
                 )}
             </div>
+
+            {dna?.geminiReasoning && (
+                <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(59,130,246,0.05)] border-l-4 border-l-primary animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="text-[10px] font-bold text-primary uppercase mb-1.5 flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        AI Forensic Reasoning
+                    </div>
+                    <div className="text-[11px] text-foreground font-bold leading-relaxed italic">
+                        "{dna.geminiReasoning}"
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

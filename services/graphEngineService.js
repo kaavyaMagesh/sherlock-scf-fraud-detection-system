@@ -105,20 +105,37 @@ const getTopology = async (lenderId) => {
             CASE
                 WHEN first_trade_date >= NOW() - INTERVAL '30 days' THEN TRUE
                 ELSE FALSE
-            END AS new_edge_flag,
-            CASE
-                WHEN invoice_count >= 8 THEN 'carousel'
-                WHEN total_volume >= 500000 THEN 'gap'
-                ELSE 'normal'
-            END AS edge_type
+            END AS new_edge_flag
         FROM trade_relationships 
         WHERE lender_id = $1
     `;
 
     const nodes = await pool.query(nodesQuery, [lenderId]);
-    const edges = await pool.query(edgesQuery, [lenderId]);
+    const edgesResult = await pool.query(edgesQuery, [lenderId]);
+    const cycles = await detectCycles(lenderId);
 
-    return { nodes: nodes.rows, edges: edges.rows };
+    // Build a lookup set for edges that are part of a detected carousel cycle
+    const carouselEdges = new Set();
+    cycles.forEach(cycle => {
+        const path = cycle.path; // e.g. [1, 2, 3] where 3->1 is also part of it
+        for (let i = 0; i < path.length; i++) {
+            const source = path[i];
+            const target = path[(i + 1) % path.length];
+            carouselEdges.add(`${source}-${target}`);
+        }
+    });
+
+    const edges = edgesResult.rows.map(edge => {
+        const isCarousel = carouselEdges.has(`${edge.source}-${edge.target}`);
+        return {
+            ...edge,
+            edge_type: isCarousel 
+                ? 'carousel' 
+                : (edge.total_volume >= 500000 ? 'gap' : 'normal')
+        };
+    });
+
+    return { nodes: nodes.rows, edges };
 };
 
 const getEgoNetwork = async (lenderId, entityId) => {

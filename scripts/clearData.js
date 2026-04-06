@@ -10,7 +10,7 @@ const clearData = async () => {
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
             AND table_type = 'BASE TABLE'
-            AND table_name NOT IN ('knex_migrations', 'knex_migrations_lock')
+            AND table_name NOT IN ('knex_migrations', 'knex_migrations_lock', 'lenders', 'companies', 'portal_users')
         `);
         const tables = tablesQuery.rows.map(r => r.table_name);
 

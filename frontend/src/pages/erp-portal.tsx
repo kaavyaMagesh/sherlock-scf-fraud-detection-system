@@ -64,7 +64,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
     const suppliers = companies?.filter(c => c.id.toString() !== localStorage.getItem("companyId")) || []; // Allow any other company to be a supplier
 
     const fetchApi = async (endpoint: string) => {
-        const res = await fetch(`http://localhost:3000/api/erp/${endpoint}`, {
+        const res = await fetch(`/api/erp/${endpoint}`, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         if (!res.ok) throw new Error("Failed");
@@ -72,7 +72,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
     };
 
     const postApi = async ({ endpoint, payload }: { endpoint: string, payload: any }) => {
-        const res = await fetch(`http://localhost:3000/api/erp/${endpoint}`, {
+        const res = await fetch(`/api/erp/${endpoint}`, {
             method: 'POST',
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
             body: JSON.stringify(payload)
@@ -349,7 +349,7 @@ function BuyerDashboard({ activeTab, setActiveTab }: { activeTab: string, setAct
 
 function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (t: string) => void }) {
     const fetchApi = async (endpoint: string) => {
-        const res = await fetch(`http://localhost:3000/api/erp/${endpoint}`, {
+        const res = await fetch(`/api/erp/${endpoint}`, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         if (!res.ok) throw new Error("Failed");
@@ -357,7 +357,7 @@ function SupplierDashboard({ activeTab, setActiveTab }: { activeTab: string, set
     };
 
     const submitInvoice = async (payload: any) => {
-        const res = await fetch(`http://localhost:3000/api/invoices`, {
+        const res = await fetch(`/api/invoices`, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
