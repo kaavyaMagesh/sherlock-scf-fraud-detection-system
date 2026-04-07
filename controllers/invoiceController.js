@@ -62,7 +62,7 @@ const submitInvoice = async (req, res) => {
         let finalBreakdown = [];
 
         // 4. Duplicate Check (Exact and Fuzzy)
-        const dupCheck = await validationService.detectDuplicates(lenderId, fingerprint, supplier_id, buyer_id, amount, invoiceDate, invoice_number);
+        const dupCheck = await validationService.detectDuplicates(lenderId, fingerprint, supplier_id, buyer_id, amount, invoiceDate, invoice_number, invoice.id);
 
         if (dupCheck.isDuplicate) {
             totalPoints += dupCheck.points;
@@ -70,7 +70,7 @@ const submitInvoice = async (req, res) => {
         }
 
         // 5. Triple Match Validation
-        const tripleCheck = await validationService.checkTripleMatch(lenderId, po_id, amount, invoiceDate, supplier_id, buyer_id, invoice_number);
+        const tripleCheck = await validationService.checkTripleMatch(lenderId, po_id, invoice.grn_id, amount, invoiceDate, supplier_id, buyer_id, invoice_number);
 
         totalPoints += tripleCheck.points;
         finalBreakdown.push(...tripleCheck.breakdown);

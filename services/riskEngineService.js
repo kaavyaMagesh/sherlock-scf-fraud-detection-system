@@ -142,6 +142,22 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
                 applyPenalty('dormant_entity_burst', `Supplier was dormant for ${Math.round(daysSinceLast)} days before this invoice`);
             }
         }
+
+        // Rule 11: Velocity Anomaly (Count > 5 in last 1 hour)
+        const velocityQuery = await pool.query(`
+            SELECT COUNT(id) as recent_count 
+            FROM invoices 
+            WHERE supplier_id = $1 
+              AND invoice_date >= ($2::TIMESTAMP - INTERVAL '1 hour')
+              AND id != $3
+        `, [supplierId, invDateObj, invoiceId]);
+        const recentCount = Number(velocityQuery.rows[0].recent_count || 0) + 1;
+
+        if (recentCount > 5) {
+            applyPenalty('velocity_anomaly', `High-frequency spike: ${recentCount} invoices submitted in the last 60 minutes (Threshold: 5)`);
+            // Escalation: 20 points from rule + 40 additional for critical velocity
+            totalScore += 40; 
+        }
     }
 
     // Rule 5: Off-hours Submission (11pm-5am) — local wall-clock unless RISK_OFF_HOURS_USE_UTC=true
@@ -299,12 +315,21 @@ const evaluateRisk = async (lenderId, invoiceId, supplierId, buyerId, amount, in
     // --- LAYER 5: GRAPH ENGINE RULES ---
 
     // 1. Cascade Over-financing Check
-    const poQuery = await pool.query('SELECT id FROM purchase_orders WHERE id = (SELECT po_id FROM invoices WHERE id = $1)', [invoiceId]);
-    if (poQuery.rows.length > 0) {
-        const rootPoId = poQuery.rows[0].id; // Simplified: assuming current PO is potential root or part of chain
+    const rootPoQuery = await pool.query(`
+        WITH RECURSIVE po_chain AS (
+            SELECT id, root_po_id FROM purchase_orders WHERE id = (SELECT po_id FROM invoices WHERE id = $1)
+            UNION ALL
+            SELECT po.id, po.root_po_id FROM purchase_orders po
+            JOIN po_chain pc ON pc.root_po_id = po.id
+        )
+        SELECT id FROM po_chain WHERE root_po_id IS NULL LIMIT 1
+    `, [invoiceId]);
+
+    if (rootPoQuery.rows.length > 0) {
+        const rootPoId = rootPoQuery.rows[0].id;
         const cascade = await graphEngineService.calculateCascadeExposure(rootPoId);
         if (cascade.ratio > 1.1) {
-            applyPenalty('cascade_over_financing', `Total chain financing is ${(cascade.ratio * 100).toFixed(1)}% of root PO (Exceeds 110%)`);
+            applyPenalty('cascade_over_financing', `Total chain financing (₹${(cascade.totalFinanced / 100000).toFixed(2)} Lacs) is ${(cascade.ratio * 100).toFixed(1)}% of root PO ₹${(cascade.rootAmount / 100000).toFixed(2)} Lacs (Threshold 110%)`);
         }
     }
 

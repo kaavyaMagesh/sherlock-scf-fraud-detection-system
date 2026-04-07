@@ -110,10 +110,10 @@ async function seedUnified() {
         const fingerprint = validationService.generateFingerprint(supplierId, buyerId, invNo, amount, invDate);
         
         // 4a. Check Duplicates
-        const dupeResult = await validationService.detectDuplicates(lenderId, fingerprint, supplierId, buyerId, amount, invDate, invNo);
+        const dupeResult = await validationService.detectDuplicates(lenderId, fingerprint, supplierId, buyerId, amount, invDate, invNo, invId);
         
         // 4b. Check Triple Match
-        const tripleResult = await validationService.checkTripleMatch(lenderId, poId, amount, invDate, supplierId, buyerId, invNo);
+        const tripleResult = await validationService.checkTripleMatch(lenderId, poId, grnId, amount, invDate, supplierId, buyerId, invNo);
 
         // --- STEP 5: INTEGRATED RISK EVALUATION ---
         const basePoints = dupeResult.points + tripleResult.points;

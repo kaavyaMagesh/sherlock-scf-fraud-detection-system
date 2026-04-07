@@ -1,5 +1,6 @@
 const pool = require('../db/index');
 const riskEngineService = require('../services/riskEngineService');
+const validationService = require('../services/validationService');
 
 async function main() {
     const args = process.argv.slice(2);
@@ -42,7 +43,19 @@ async function main() {
 
         console.log("\n[LLM] Re-evaluating Layer 6 Semantic Engine...");
         
-        // We simulate the risk engine flow
+        // 1. Mandatory Triple Match Verification (ERP Truth)
+        const tripleCheck = await validationService.checkTripleMatch(
+            invoice.lender_id, 
+            invoice.po_id, 
+            invoice.grn_id, 
+            invoice.amount, 
+            invoice.invoice_date, 
+            invoice.supplier_id, 
+            invoice.buyer_id, 
+            invoice.invoice_number
+        );
+
+        // 2. Full Risk Engine Execution
         const result = await riskEngineService.evaluateRisk(
             invoice.lender_id,
             invoice.id,
@@ -51,8 +64,8 @@ async function main() {
             invoice.amount,
             invoice.invoice_date,
             invoice.expected_payment_date,
-            0, // Start with 0 base points to isolate semantic impact
-            [],
+            tripleCheck.points,
+            tripleCheck.breakdown,
             { triggerAI: true }
         );
 

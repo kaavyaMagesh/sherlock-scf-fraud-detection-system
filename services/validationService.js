@@ -7,16 +7,23 @@ const generateFingerprint = (supplierId, buyerId, invoiceNumber, amount, invoice
     return crypto.createHash('sha256').update(raw).digest('hex');
 };
 
-const checkTripleMatch = async (lenderId, poId, invoiceAmount, invoiceDate, supplierId, buyerId, invoiceNumber) => {
+const checkTripleMatch = async (lenderId, poId, grnId, invoiceAmount, invoiceDate, supplierId, buyerId, invoiceNumber) => {
     const breakdown = [];
     let penaltyPoints = 0;
 
-    // 1. Fetch PO, GRN and Delivery dynamically
+    // 1. Fetch PO dynamically
     const poQuery = await pool.query('SELECT * FROM purchase_orders WHERE id = $1 AND lender_id = $2', [poId, lenderId]);
     const po = poQuery.rows[0];
 
-    const grnQuery = await pool.query('SELECT * FROM goods_receipts WHERE po_id = $1 AND lender_id = $2 ORDER BY created_at DESC LIMIT 1', [poId, lenderId]);
-    const grn = grnQuery.rows[0];
+    // 2. Fetch GRN (use grnId if provided, else fall back to poId lookup)
+    let grn;
+    if (grnId) {
+        const grnQuery = await pool.query('SELECT * FROM goods_receipts WHERE id = $1 AND lender_id = $2', [grnId, lenderId]);
+        grn = grnQuery.rows[0];
+    } else {
+        const grnQuery = await pool.query('SELECT * FROM goods_receipts WHERE po_id = $1 AND lender_id = $2 ORDER BY created_at DESC LIMIT 1', [poId, lenderId]);
+        grn = grnQuery.rows[0];
+    }
 
     let delivery = null;
     if (grn) {

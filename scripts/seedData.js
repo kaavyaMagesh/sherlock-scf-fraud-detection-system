@@ -33,14 +33,14 @@ const submitSeedInvoice = async (lenderId, invoiceNumber, poId, grnId, supplierI
     let finalBreakdown = [];
 
     // 4. Duplicate Check
-    const dupCheck = await validationService.detectDuplicates(lenderId, fingerprint, supplierId, buyerId, amount, invDateObj, invoiceNumber);
+    const dupCheck = await validationService.detectDuplicates(lenderId, fingerprint, supplierId, buyerId, amount, invDateObj, invoiceNumber, invoice.id);
     if (dupCheck.isDuplicate) {
         totalPoints += dupCheck.points;
         finalBreakdown.push(...dupCheck.breakdown);
     }
 
     // 5. Triple Match
-    const tripleCheck = await validationService.checkTripleMatch(lenderId, poId, amount, invDateObj, supplierId, buyerId, invoiceNumber);
+    const tripleCheck = await validationService.checkTripleMatch(lenderId, poId, grnId, amount, invDateObj, supplierId, buyerId, invoiceNumber);
     totalPoints += tripleCheck.points;
     finalBreakdown.push(...tripleCheck.breakdown);
 

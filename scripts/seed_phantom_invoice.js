@@ -20,9 +20,10 @@ async function seedPhantomInvoice() {
         if (buyerRes.rows.length === 0) throw new Error("No buyers found.");
         const buyer = buyerRes.rows[0];
 
-        const invoiceNumber = `PHNTM-${Math.floor(Math.random() * 9000) + 1000}`;
-        const amount = 450000.00;
+        const amount = 15500000.00; // >80% of 18M annual revenue
+        const invoiceNumber = `PHNTM-BLOCK-${Math.floor(Math.random() * 9000) + 1000}`;
         const invoiceDate = new Date();
+        invoiceDate.setHours(3, 30, 0, 0); // Off-hours
         const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Net 30
 
         console.log(`Using Lender ID: ${lenderId}`);
@@ -37,7 +38,7 @@ async function seedPhantomInvoice() {
                 lender_id, buyer_id, supplier_id, amount, po_date, 
                 goods_category, delivery_location, payment_terms
             )
-            VALUES ($1, $2, $3, $4, NOW() - INTERVAL '10 days', 'High-Precision Medical Components', 'Medical Hub Warehouse, Zone A', 'Net 30')
+            VALUES ($1, $2, $3, $4, NOW() - INTERVAL '15 days', 'Aviation-Grade Titanium Components', 'Hangar 7, New Delhi Cargo Terminal', 'Net 30')
             RETURNING id
         `, [lenderId, buyer.id, supplier.id, amount]);
         const poId = poRes.rows[0].id;
@@ -50,7 +51,7 @@ async function seedPhantomInvoice() {
                 amount, goods_category, invoice_date, expected_payment_date, 
                 status, delivery_location, payment_terms
             )
-            VALUES ($1, $2, $3, $4, $5, $6, 'High-Precision Medical Components', $7, $8, 'PENDING', 'Medical Hub Warehouse, Zone A', 'Net 30')
+            VALUES ($1, $2, $3, $4, $5, $6, 'Aviation-Grade Titanium Components', $7, $8, 'PENDING', 'Hangar 7, New Delhi Cargo Terminal', 'Net 30')
             RETURNING id
         `, [lenderId, invoiceNumber, poId, supplier.id, buyer.id, amount, invoiceDate, dueDate]);
         const invoiceId = invRes.rows[0].id;
@@ -61,7 +62,7 @@ async function seedPhantomInvoice() {
 
         // 5. Triple Match Validation (Manually)
         console.log("Step 3: Running Triple Match Validation...");
-        const tripleCheck = await validationService.checkTripleMatch(lenderId, poId, amount, invoiceDate, supplier.id, buyer.id, invoiceNumber);
+        const tripleCheck = await validationService.checkTripleMatch(lenderId, poId, null, amount, invoiceDate, supplier.id, buyer.id, invoiceNumber);
         
         // 6. Risk Engine Evaluation
         console.log("Step 4: Executing Risk Engine...");

@@ -123,6 +123,16 @@ function classifyFraudDNA(breakdown) {
         });
     }
 
+    // ── VELOCITY_FRAUD ───────────────────────────────────────────────────────
+    if (factors.includes('velocity_anomaly')) {
+        const pts = sumPoints(['velocity_anomaly']);
+        typologies.push({
+            label: "VELOCITY_FRAUD",
+            confidence: Math.min(99, Math.max(70, pts * 3)), // Multiplier to show higher confidence on velocity
+            action: "Review submission timestamps and investigate potential automated/bot-driven invoicing"
+        });
+    }
+
     // ── DORMANT_ENTITY_BURST ──────────────────────────────────────────────────
     if (factors.includes('dormant_entity_burst')) {
         const pts = sumPoints(['dormant_entity_burst']);
@@ -130,6 +140,16 @@ function classifyFraudDNA(breakdown) {
             label: "DORMANT_ENTITY_BURST",
             confidence: Math.min(99, Math.max(55, pts)),
             action: "Require enhanced due diligence for account reactivation"
+        });
+    }
+
+    // ── BURST_INVOICING ───────────────────────────────────────────────────────
+    if (factors.includes('monthly_volume_spike')) {
+        const pts = sumPoints(['monthly_volume_spike']);
+        typologies.push({
+            label: "BURST_INVOICING",
+            confidence: Math.min(99, Math.max(60, pts)),
+            action: "Verify current month's volume legitimacy against historical turnover"
         });
     }
 
